@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "871261778145",
+    "project_id": "scholarlens-fe",
+    "storage_bucket": "scholarlens-fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:871261778145:android:415635a6d4b5e89999c7a0",
+        "android_client_info": {
+          "package_name": "com.example.scholarlens_fe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiG3AIgKnS3XVu4t6pPoUiPQ6R7DmOh0s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
