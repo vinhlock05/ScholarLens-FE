@@ -15,4 +15,40 @@
     <string name="home_content">Welcome to ScholarLens Home</string>
     <string name="search_content">Search for scholarly articles</string>
     <string name="profile_content">Your Profile</string>
+    
+    <!-- Home Screen - Scholarship Browsing -->
+    <string name="browse_scholarships">Browse Scholarships</string>
+    <string name="search_placeholder">Search by name, university, program, or field of study…</string>
+    <string name="scholarships_available">%d scholarships available</string>
+    <string name="view_official_page">View Official Page</string>
+    <string name="application_period">Application Period</string>
+    <string name="opens">Opens</string>
+    <string name="closes">Closes</string>
+    <string name="loading_scholarships">Loading scholarships…</string>
+    <string name="no_scholarships_found">No scholarships found</string>
+    <string name="try_different_search">Try adjusting your search criteria</string>
+    <string name="error_loading_scholarships">Error loading scholarships</string>
+    <string name="retry">Retry</string>
+    <string name="field_of_study">Field of Study</string>
+    <string name="bookmark_scholarship">Bookmark</string>
+    <string name="remove_bookmark">Remove Bookmark</string>
+    
+    <!-- Filter Labels -->
+    <string name="filter_country">Country</string>
+    <string name="filter_funding">Funding</string>
+    <string name="filter_type">Type</string>
+    <string name="filter_field">Field</string>
+    <string name="filter_all">All %1$s</string>
+    <string name="clear_filters">Clear Filters</string>
+    
+    <!-- Loading States -->
+    <string name="loading_more">Loading more…</string>
+    <string name="no_more_scholarships">No more scholarships</string>
+    
+    <!-- Error Messages -->
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_timeout">Request timeout. Please try again.</string>
+    <string name="error_authentication">Authentication failed. Please sign in again.</string>
+    <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_unknown">An error occurred. Please try again.</string>
 </resources>

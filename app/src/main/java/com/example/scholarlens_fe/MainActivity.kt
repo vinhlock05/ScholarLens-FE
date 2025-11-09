@@ -59,10 +59,12 @@ fun MainScreen() {
 
                     NavigationBarItem(
                         icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.title
-                            )
+                            destination.icon?.let { icon ->
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = destination.title
+                                )
+                            }
                         },
                         label = {
                             Text(text = destination.title)

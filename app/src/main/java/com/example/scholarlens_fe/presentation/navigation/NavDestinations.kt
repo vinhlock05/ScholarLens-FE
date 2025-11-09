@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class NavDestination(
     val route: String,
     val title: String,
-    val icon: ImageVector
+    val icon: ImageVector? = null
 ) {
     data object Home : NavDestination(
         route = "home",
