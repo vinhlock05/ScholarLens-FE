@@ -5,6 +5,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
     id("com.google.gms.google-services")
+    id("com.apollographql.apollo3")
 }
 
 android {
@@ -39,6 +40,28 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+/**
+ * Apollo GraphQL Configuration
+ * This section configures Apollo GraphQL code generation
+ */
+apollo {
+    service("service") {
+        // Package name for generated code
+        packageName.set("com.example.scholarlens_fe.graphql")
+        
+        // GraphQL schema file location
+        // This file should be downloaded from your GraphQL server
+        // See GRAPHQL_USAGE_GUIDE.md for instructions
+        schemaFile.set(file("src/main/graphql/com/example/scholarlens_fe/schema.graphqls"))
+        
+        // Source directory for GraphQL queries/mutations
+        srcDir(file("src/main/graphql"))
+        
+        // Generate Kotlin models (default is true, but explicit is better)
+        generateKotlinModels.set(true)
     }
 }
 
@@ -88,6 +111,7 @@ dependencies {
     
     // Apollo GraphQL
     implementation("com.apollographql.apollo3:apollo-runtime:3.8.2")
+    implementation(libs.apollo.runtime)
     
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")

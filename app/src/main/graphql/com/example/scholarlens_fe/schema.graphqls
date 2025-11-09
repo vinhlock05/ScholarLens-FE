@@ -1,0 +1,88 @@
+input FilterInput {
+    field: String!
+    stringValues: [String!]
+    intValues: [Int!]
+    floatValues: [Float!]
+    operator: IntraFieldOperator = OR
+}
+
+enum InterFieldOperator {
+    AND
+    OR
+}
+
+enum IntraFieldOperator {
+    AND
+    OR
+}
+
+type MatchItem {
+    id: String!
+    esScore: Float!
+    matchScore: Float!
+    matchedFields: [String!]!
+    summaryName: String
+    summaryStartDate: String
+    summaryEndDate: String
+    summaryAmount: String
+}
+
+type MatchResult {
+    total: Int!
+    items: [MatchItem!]!
+    hasNextPage: Boolean!
+    nextOffset: Int
+    warnings: [String!]
+}
+
+type Query {
+    """Unified ES search combining keyword and structured filters"""
+    searchEs(
+        collection: String!
+        q: String
+        filters: [FilterInput!]
+        interFieldOperator: InterFieldOperator = AND
+        size: Int = 10
+        offset: Int = 0
+    ): SearchResult!
+
+    """Recommend scholarships for a given user profile"""
+    matchScholarships(
+        profile: UserProfileInput
+        size: Int = 10
+        offset: Int = 0
+    ): MatchResult!
+}
+
+type ScholarshipSource {
+    name: String
+    country: String
+    startDate: String
+    endDate: String
+    amount: String
+
+    """Số ngày còn lại trước hạn nộp (computed field)"""
+    daysUntilDeadline: Int
+}
+
+type SearchHit {
+    id: String!
+    score: Float!
+    source: ScholarshipSource
+}
+
+type SearchResult {
+    total: Int!
+    items: [SearchHit!]!
+}
+
+input UserProfileInput {
+    gpaRange4: Float
+    degree: String
+    fieldOfStudy: String
+    desiredScholarshipType: [String!]
+    desiredFundingLevel: [String!]
+    desiredApplicationMode: [String!]
+    deadlineAfter: String
+    deadlineBefore: String
+}

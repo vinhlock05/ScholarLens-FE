@@ -1,0 +1,3 @@
+# This file ensures the graphql directory is tracked by git
+# GraphQL queries, mutations, and fragments will be placed in this directory
+
