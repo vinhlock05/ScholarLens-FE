@@ -30,6 +30,15 @@ import com.example.scholarlens_fe.R
 import com.example.scholarlens_fe.domain.model.Scholarship
 import com.example.scholarlens_fe.presentation.components.FilterChipsRow
 import com.example.scholarlens_fe.presentation.components.ScholarshipCardSkeleton
+import com.example.scholarlens_fe.util.DateTimeUtils
+import java.time.format.DateTimeFormatter
+
+private val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+private fun formatIsoDateOrDash(input: String?): String {
+	if (input.isNullOrBlank()) return "-"
+	return DateTimeUtils.parseIsoToLocalDateTime(input)?.format(DISPLAY_DATE_FORMATTER) ?: input
+}
 
 /**
  * Home Screen - Scholarship Browsing
@@ -377,7 +386,7 @@ fun ScholarshipCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = scholarship.startDate ?: "-",
+							text = formatIsoDateOrDash(scholarship.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -390,7 +399,7 @@ fun ScholarshipCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = scholarship.endDate ?: scholarship.deadline ?: "-",
+							text = formatIsoDateOrDash(scholarship.endDate ?: scholarship.deadline),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium
                         )

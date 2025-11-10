@@ -74,7 +74,7 @@ data class ScholarshipSource(
     val Description: String? = null,
     val Eligibility: String? = null,
     val Application_Process: String? = null,
-    val Website: String? = null,
+    val Url: String? = null,
     val Application_Mode: String? = null,
     val Eligible_Fields: Any? = null, // Can be String or List<String>
     val Amount: Any? = null, // Can be String or Number

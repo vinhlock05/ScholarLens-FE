@@ -25,7 +25,7 @@ object ScholarshipMapper {
             description = source.Description,
             eligibility = source.Eligibility,
             applicationProcess = source.Application_Process,
-            website = source.Website,
+            website = source.Url,
             applicationMode = source.Application_Mode,
             eligibleFields = parseEligibleFields(source.Eligible_Fields),
             amount = parseAmount(source.Amount),
