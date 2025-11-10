@@ -12,8 +12,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class NavDestination(
     val route: String,
     val title: String,
-    val icon: ImageVector
+    val icon: ImageVector? = null
 ) {
+    // Authentication screens
+    data object Login : NavDestination(
+        route = "login",
+        title = "Login"
+    )
+
+    data object Register : NavDestination(
+        route = "register",
+        title = "Register"
+    )
+
+    data object ForgotPassword : NavDestination(
+        route = "forgot_password",
+        title = "Forgot Password"
+    )
+
+    // Main app screens
     data object Home : NavDestination(
         route = "home",
         title = "Home",
@@ -41,4 +58,3 @@ val bottomNavDestinations = listOf(
     NavDestination.Search,
     NavDestination.Profile
 )
-
