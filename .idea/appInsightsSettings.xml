@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.example.scholarlens_fe" />
-                  <option name="mobileSdkAppId" value="1:871261778145:android:415635a6d4b5e89999c7a0" />
-                  <option name="projectId" value="scholarlens-fe" />
-                  <option name="projectNumber" value="871261778145" />
+                  <option name="mobileSdkAppId" value="1:363455079953:android:b06af0188a5e93b45333b0" />
+                  <option name="projectId" value="scholarship-routing" />
+                  <option name="projectNumber" value="363455079953" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

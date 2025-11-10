@@ -98,6 +98,7 @@ dependencies {
 
     implementation(libs.firebase.firestore)
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-storage:22.0.0")

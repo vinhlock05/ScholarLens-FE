@@ -1,21 +1,21 @@
 <resources>
     <string name="app_name">ScholarLens</string>
-    
+
     <!-- Bottom Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>
     <string name="nav_profile">Profile</string>
-    
+
     <!-- Screen Titles -->
     <string name="home_screen_title">Home</string>
     <string name="search_screen_title">Search</string>
     <string name="profile_screen_title">Profile</string>
-    
+
     <!-- Screen Content Placeholders -->
     <string name="home_content">Welcome to ScholarLens Home</string>
     <string name="search_content">Search for scholarly articles</string>
     <string name="profile_content">Your Profile</string>
-    
+
     <!-- Home Screen - Scholarship Browsing -->
     <string name="browse_scholarships">Browse Scholarships</string>
     <string name="search_placeholder">Search by name, university, program, or field of study…</string>
@@ -32,7 +32,7 @@
     <string name="field_of_study">Field of Study</string>
     <string name="bookmark_scholarship">Bookmark</string>
     <string name="remove_bookmark">Remove Bookmark</string>
-    
+
     <!-- Filter Labels -->
     <string name="filter_country">Country</string>
     <string name="filter_funding">Funding</string>
@@ -40,15 +40,39 @@
     <string name="filter_field">Field</string>
     <string name="filter_all">All %1$s</string>
     <string name="clear_filters">Clear Filters</string>
-    
+
     <!-- Loading States -->
     <string name="loading_more">Loading more…</string>
     <string name="no_more_scholarships">No more scholarships</string>
-    
+
     <!-- Error Messages -->
     <string name="error_no_internet">No internet connection. Please check your network.</string>
     <string name="error_timeout">Request timeout. Please try again.</string>
     <string name="error_authentication">Authentication failed. Please sign in again.</string>
     <string name="error_server">Server error. Please try again later.</string>
     <string name="error_unknown">An error occurred. Please try again.</string>
+
+    <!-- Authentication -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to continue</string>
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Sign up to get started</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="register">Register</string>
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="forgot_password_subtitle">Enter your email address and we\'ll send you a link to reset your password.</string>
+    <string name="send_reset_email">Send Reset Email</string>
+    <string name="password_reset_sent">Password reset email sent! Please check your inbox.</string>
+    <string name="back_to_login">Back to Login</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="logout">Logout</string>
+    <string name="default_web_client_id">363455079953-ko512hm9cdd4rjs9ph3m4e9b2u0a486v.apps.googleusercontent.com</string>
 </resources>

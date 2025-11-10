@@ -1,6 +1,7 @@
 package com.example.scholarlens_fe.di
 
-import com.example.scholarlens_fe.data.api.ScholarshipApiService
+import com.example.scholarlens_fe.data.api.AuthApiService
+import com.example.scholarlens_fe.data.interceptor.AuthInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -16,6 +17,7 @@ import javax.inject.Singleton
 
 /**
  * Network module for providing API services
+ * Based on AUTHENTICATION_FLOW.md
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -24,7 +26,7 @@ object NetworkModule {
     /**
      * Base URL for backend API
      * TODO: Replace with actual backend URL or use BuildConfig
-     * 
+     *
      * To set your backend URL:
      * 1. Replace "YOUR_IP" with your actual backend server IP address
      * 2. Or use BuildConfig to set it based on build variant
@@ -45,15 +47,18 @@ object NetworkModule {
     }
 
     /**
-     * Provides OkHttpClient
+     * Provides OkHttpClient with AuthInterceptor
+     * AuthInterceptor adds Authorization header to all requests
      */
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        loggingInterceptor: HttpLoggingInterceptor
+        loggingInterceptor: HttpLoggingInterceptor,
+        authInterceptor: AuthInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor) // Add auth interceptor first
+            .addInterceptor(loggingInterceptor) // Then logging interceptor
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -91,6 +96,15 @@ object NetworkModule {
     @Singleton
     fun provideScholarshipApiService(retrofit: Retrofit): ScholarshipApiService {
         return retrofit.create(ScholarshipApiService::class.java)
+    }
+
+    /**
+     * Provides AuthApiService
+     */
+    @Provides
+    @Singleton
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService {
+        return retrofit.create(AuthApiService::class.java)
     }
 }
 
