@@ -18,7 +18,7 @@ class GetCurrentUserUseCase @Inject constructor(
 ) {
     operator fun invoke(): User? {
         val firebaseUser = authRepository.currentUser ?: return null
-        
+
         return User(
             id = firebaseUser.uid,
             email = firebaseUser.email ?: "",
@@ -26,5 +26,11 @@ class GetCurrentUserUseCase @Inject constructor(
             photoUrl = firebaseUser.photoUrl?.toString()
         )
     }
-}
 
+    /**
+     * Check if user is logged in
+     */
+    fun isUserLoggedIn(): Boolean {
+        return authRepository.isUserLoggedIn
+    }
+}

@@ -11,17 +11,24 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.scholarlens_fe.domain.usecase.GetCurrentUserUseCase
+import com.example.scholarlens_fe.presentation.navigation.NavDestination
 import com.example.scholarlens_fe.presentation.navigation.NavGraph
 import com.example.scholarlens_fe.presentation.navigation.bottomNavDestinations
 import com.example.scholarlens_fe.ui.theme.ScholarLensFETheme
+import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Main Activity of the application
@@ -41,49 +48,88 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
+ * ViewModel for MainActivity to check authentication state
+ */
+@HiltViewModel
+class MainActivityViewModel @Inject constructor(
+    private val getCurrentUserUseCase: GetCurrentUserUseCase
+) : ViewModel() {
+    fun isUserLoggedIn(): Boolean {
+        return getCurrentUserUseCase.isUserLoggedIn()
+    }
+}
+
+/**
  * Main screen composable with bottom navigation and nav graph
+ * Shows bottom navigation only when user is authenticated
  */
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    viewModel: MainActivityViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    // Check if user is authenticated
+    val isAuthenticated = viewModel.isUserLoggedIn()
+
+    // Determine if bottom navigation should be shown
+    val showBottomNav = isAuthenticated && currentDestination?.route in bottomNavDestinations.map { it.route }
+
+    // Navigate to login if not authenticated and not already on auth screens
+    LaunchedEffect(isAuthenticated) {
+        if (!isAuthenticated && currentDestination?.route !in listOf(
+                NavDestination.Login.route,
+                NavDestination.Register.route,
+                NavDestination.ForgotPassword.route
+            )
+        ) {
+            navController.navigate(NavDestination.Login.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                bottomNavDestinations.forEach { destination ->
-                    val selected = currentDestination?.hierarchy?.any {
-                        it.route == destination.route
-                    } == true
+            if (showBottomNav) {
+                NavigationBar {
+                    bottomNavDestinations.forEach { destination ->
+                        val selected = currentDestination?.hierarchy?.any {
+                            it.route == destination.route
+                        } == true
 
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.title
-                            )
-                        },
-                        label = {
-                            Text(text = destination.title)
-                        },
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                // on the back stack as users select items
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                        NavigationBarItem(
+                            icon = {
+                                destination.icon?.let { icon ->
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = destination.title
+                                    )
                                 }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
+                            },
+                            label = {
+                                Text(text = destination.title)
+                            },
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    // Pop up to the start destination of the graph to
+                                    // avoid building up a large stack of destinations
+                                    // on the back stack as users select items
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    // Avoid multiple copies of the same destination when
+                                    // reselecting the same item
+                                    launchSingleTop = true
+                                    // Restore state when reselecting a previously selected item
+                                    restoreState = true
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
