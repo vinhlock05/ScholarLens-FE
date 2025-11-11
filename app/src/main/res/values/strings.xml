@@ -24,6 +24,8 @@
     <string name="application_period">Application Period</string>
     <string name="opens">Opens</string>
     <string name="closes">Closes</string>
+    <string name="deadline_days_left">%1$d days left</string>
+    <string name="deadline_expired">Expired</string>
     <string name="loading_scholarships">Loading scholarships…</string>
     <string name="no_scholarships_found">No scholarships found</string>
     <string name="try_different_search">Try adjusting your search criteria</string>
@@ -34,9 +36,8 @@
     <string name="remove_bookmark">Remove Bookmark</string>
 
     <!-- Filter Labels -->
-    <string name="filter_country">Country</string>
-    <string name="filter_funding">Funding</string>
-    <string name="filter_type">Type</string>
+    <string name="filter_university">University</string>
+    <string name="filter_amount">Amount</string>
     <string name="filter_field">Field</string>
     <string name="filter_all">All %1$s</string>
     <string name="clear_filters">Clear Filters</string>

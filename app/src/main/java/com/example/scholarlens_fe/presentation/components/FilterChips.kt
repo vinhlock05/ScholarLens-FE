@@ -15,20 +15,20 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun FilterChipsRow(
-    selectedCountry: String?,
-    selectedFundingLevel: String?,
-    selectedScholarshipType: String?,
+    selectedUniversity: String?,
     selectedFieldOfStudy: String?,
-    onCountryRemove: () -> Unit,
-    onFundingLevelRemove: () -> Unit,
-    onScholarshipTypeRemove: () -> Unit,
+    selectedAmount: String?,
+    sortByDeadline: Boolean,
+    onUniversityRemove: () -> Unit,
     onFieldOfStudyRemove: () -> Unit,
+    onAmountRemove: () -> Unit,
+    onSortToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hasFilters = selectedCountry != null || 
-                     selectedFundingLevel != null || 
-                     selectedScholarshipType != null || 
-                     selectedFieldOfStudy != null
+    val hasFilters = selectedUniversity != null ||
+        selectedFieldOfStudy != null ||
+        selectedAmount != null ||
+        sortByDeadline
 
     if (hasFilters) {
         Row(
@@ -37,43 +37,15 @@ fun FilterChipsRow(
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            selectedCountry?.let {
+            selectedUniversity?.let {
                 FilterChip(
                     selected = true,
-                    onClick = onCountryRemove,
-                    label = { Text("Country: $it") },
+                    onClick = onUniversityRemove,
+                    label = { Text("University: $it") },
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Remove country filter"
-                        )
-                    }
-                )
-            }
-
-            selectedFundingLevel?.let {
-                FilterChip(
-                    selected = true,
-                    onClick = onFundingLevelRemove,
-                    label = { Text("Funding: $it") },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove funding level filter"
-                        )
-                    }
-                )
-            }
-
-            selectedScholarshipType?.let {
-                FilterChip(
-                    selected = true,
-                    onClick = onScholarshipTypeRemove,
-                    label = { Text("Type: $it") },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove scholarship type filter"
+                            contentDescription = "Remove university filter"
                         )
                     }
                 )
@@ -87,7 +59,35 @@ fun FilterChipsRow(
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Remove field of study filter"
+                            contentDescription = "Remove field filter"
+                        )
+                    }
+                )
+            }
+
+            selectedAmount?.let {
+                FilterChip(
+                    selected = true,
+                    onClick = onAmountRemove,
+                    label = { Text("Amount: $it") },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove amount filter"
+                        )
+                    }
+                )
+            }
+
+            if (sortByDeadline) {
+                FilterChip(
+                    selected = true,
+                    onClick = onSortToggle,
+                    label = { Text("Sort: Deadline") },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Disable deadline sort"
                         )
                     }
                 )

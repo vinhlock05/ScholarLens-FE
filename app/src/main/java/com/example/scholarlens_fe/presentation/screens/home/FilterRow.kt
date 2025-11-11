@@ -18,59 +18,72 @@ import com.example.scholarlens_fe.R
  */
 @Composable
 fun FilterRow(
-    selectedCountry: String?,
-    selectedFundingLevel: String?,
-    selectedScholarshipType: String?,
+    selectedUniversity: String?,
     selectedFieldOfStudy: String?,
-    onCountrySelected: (String?) -> Unit,
-    onFundingLevelSelected: (String?) -> Unit,
-    onScholarshipTypeSelected: (String?) -> Unit,
+    selectedAmount: String?,
+    sortByDeadline: Boolean,
+    onUniversitySelected: (String?) -> Unit,
     onFieldOfStudySelected: (String?) -> Unit,
+    onAmountSelected: (String?) -> Unit,
+    onSortToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Mock filter options - In real app, these would come from API or ViewModel
-    val countries = listOf("UK", "Hà Lan", "Đức", "USA", "Canada", "Australia", "Finland", "Netherlands")
-    val fundingLevels = listOf("Toàn phần", "Bán phần", "Học phí", "Living expenses", "Travel")
-    val scholarshipTypes = listOf("Master", "PhD", "Bachelor", "Research", "Postdoctoral")
+    val universities = listOf("MIT", "Harvard", "Stanford", "Oxford", "Cambridge", "UC Berkeley")
     val fieldsOfStudy = listOf("Engineering", "Computer Science", "Business", "Medicine", "Arts", "Science", "Law")
+    val amountRanges = listOf(
+        "< 1,000 USD",
+        "1,000 - 5,000 USD",
+        "5,000 - 10,000 USD",
+        "10,000 - 20,000 USD",
+        "> 20,000 USD"
+    )
+    val universityLabel = stringResource(id = R.string.filter_university)
+    val fieldLabel = stringResource(id = R.string.filter_field)
+    val amountLabel = stringResource(id = R.string.filter_amount)
 
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Country Filter
         FilterDropdown(
-            label = "Country",
-            selectedValue = selectedCountry,
-            options = countries,
-            onOptionSelected = onCountrySelected,
+            label = universityLabel,
+            selectedValue = selectedUniversity,
+            options = universities,
+            onOptionSelected = onUniversitySelected,
             modifier = Modifier.weight(1f)
         )
 
-        // Funding Level Filter
         FilterDropdown(
-            label = "Funding",
-            selectedValue = selectedFundingLevel,
-            options = fundingLevels,
-            onOptionSelected = onFundingLevelSelected,
-            modifier = Modifier.weight(1f)
-        )
-
-        // Scholarship Type Filter
-        FilterDropdown(
-            label = "Type",
-            selectedValue = selectedScholarshipType,
-            options = scholarshipTypes,
-            onOptionSelected = onScholarshipTypeSelected,
-            modifier = Modifier.weight(1f)
-        )
-
-        // Field of Study Filter
-        FilterDropdown(
-            label = "Field",
+            label = fieldLabel,
             selectedValue = selectedFieldOfStudy,
             options = fieldsOfStudy,
             onOptionSelected = onFieldOfStudySelected,
+            modifier = Modifier.weight(1f)
+        )
+
+        FilterDropdown(
+            label = amountLabel,
+            selectedValue = selectedAmount,
+            options = amountRanges,
+            onOptionSelected = onAmountSelected,
+            modifier = Modifier.weight(1f)
+        )
+
+        FilterChip(
+            selected = sortByDeadline,
+            onClick = { onSortToggle(!sortByDeadline) },
+            label = {
+                Text(
+                    text = if (sortByDeadline) "Deadline ↑" else "Deadline",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = null
+                )
+            },
             modifier = Modifier.weight(1f)
         )
     }
@@ -116,7 +129,7 @@ fun FilterDropdown(
         ) {
             // Clear option
             DropdownMenuItem(
-                text = { Text("All $label") },
+                text = { Text(stringResource(id = R.string.filter_all, label)) },
                 onClick = {
                     onOptionSelected(null)
                     expanded = false

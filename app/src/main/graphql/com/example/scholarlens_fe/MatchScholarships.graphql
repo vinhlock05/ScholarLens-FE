@@ -1,0 +1,27 @@
+query MatchScholarships(
+    $profile: UserProfileInput
+    $size: Int = 10
+    $offset: Int = 0
+) {
+    matchScholarships(
+        profile: $profile
+        size: $size
+        offset: $offset
+    ) {
+        total
+        hasNextPage
+        nextOffset
+        warnings
+        items {
+            id
+            esScore
+            matchScore
+            matchedFields
+            summaryName
+            summaryStartDate
+            summaryEndDate
+            summaryAmount
+        }
+    }
+}
+

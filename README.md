@@ -23,7 +23,8 @@ app/
 - **UI Framework**: Jetpack Compose
 - **Dependency Injection**: Hilt/Dagger
 - **Navigation**: Navigation Compose
-- **Backend**: Firebase
+- **Networking**: Apollo Kotlin (GraphQL)
+- **Backend**: Firebase + GraphQL API
   - Authentication
   - Firestore Database
   - Realtime Database
@@ -33,8 +34,9 @@ app/
 
 ## 📱 Features
 
-- ✅ Bottom Navigation with 3 tabs (Home, Search, Profile)
+- ✅ Bottom Navigation with 3 tabs (Browse, My Matches, Profile)
 - ✅ Modern Material Design 3 UI
+- ✅ GraphQL search and match integration
 - ✅ Clean Architecture implementation
 - ✅ Firebase integration ready
 - ✅ Hilt dependency injection
@@ -71,7 +73,13 @@ Quick steps:
    ```
 6. Sync Gradle
 
-### 4. Build and Run
+### 4. GraphQL Codegen
+If you change `schema.graphqls` or any `.graphql` operation files, regenerate Apollo models:
+```bash
+./gradlew :app:generateApolloSources --no-daemon
+```
+
+### 5. Build and Run
 ```bash
 # Sync Gradle
 ./gradlew build
@@ -102,8 +110,8 @@ ScholarLensFE/
 │   │   │   │   └── screens/
 │   │   │   │       ├── home/
 │   │   │   │       │   └── HomeScreen.kt
-│   │   │   │       ├── search/
-│   │   │   │       │   └── SearchScreen.kt
+│   │   │   │       ├── matches/
+│   │   │   │       │   └── MatchesScreen.kt
 │   │   │   │       └── profile/
 │   │   │   │           └── ProfileScreen.kt
 │   │   │   ├── ui/theme/
@@ -125,17 +133,15 @@ ScholarLensFE/
 
 ## 🎨 Screens
 
-### Home Screen
-- Main landing page
-- Welcome message and content
+### Browse (Home)
+- Scholarship list with deadline-first sorting (DESC) and badge for "Expired" / "N days left".
 
-### Search Screen
-- Search functionality for scholarly articles
-- (To be implemented)
+### My Matches
+- If no CV/profile, prompts upload with CTA to Profile.
+- When profile is available, will display recommended scholarships from `matchScholarships`.
 
-### Profile Screen
-- User profile and settings
-- (To be implemented)
+### Profile
+- Authentication, account and CV upload (future).
 
 ## 🔧 Development
 
@@ -145,6 +151,33 @@ ScholarLensFE/
 2. Add destination to `NavDestinations.kt`
 3. Add route to `NavGraph.kt`
 4. Update navigation as needed
+
+### Using GraphQL
+See detailed guide in `GRAPHQL_IMPLEMENTATION.md`. Quick samples:
+
+```kotlin
+// Search
+val filter = ScholarshipFilter(
+  keyword = "engineering",
+  university = "MIT",
+  fieldOfStudy = "Computer Science",
+  sortByDeadline = true,
+  sortOrder = SortOrder.DESC
+)
+val result = searchScholarshipsUseCase(filter, size = 10, offset = 0)
+
+// Match
+val profile = MatchProfile(
+  name = "John Doe",
+  universities = listOf("MIT", "Harvard"),
+  fieldOfStudy = "Engineering",
+  minAmount = "1000",
+  maxAmount = "20000",
+  deadlineAfter = "2025-01-01",
+  deadlineBefore = "2025-12-31"
+)
+val match = matchScholarshipsUseCase(profile, size = 10, offset = 0)
+```
 
 ### Using Firebase Services
 
@@ -172,7 +205,7 @@ All dependencies are managed in:
 
 ✅ MainActivity with BottomNavigationView  
 ✅ Navigation Component integration  
-✅ 3 fragments/screens: Home, Search, Profile  
+✅ 3 tabs/screens: Browse, My Matches, Profile  
 ✅ Proper navigation without crashes  
 ✅ Individual layouts for each screen  
 ✅ Smooth navigation without stack issues  

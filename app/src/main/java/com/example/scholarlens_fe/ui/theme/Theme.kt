@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
+    primary = Purple40, // keep primary consistent
     secondary = PurpleGrey80,
     tertiary = Pink80
 )
@@ -36,8 +36,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ScholarLensFETheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Use app brand colors by default
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

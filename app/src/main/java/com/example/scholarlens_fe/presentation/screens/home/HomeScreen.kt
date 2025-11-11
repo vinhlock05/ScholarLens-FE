@@ -31,13 +31,23 @@ import com.example.scholarlens_fe.domain.model.Scholarship
 import com.example.scholarlens_fe.presentation.components.FilterChipsRow
 import com.example.scholarlens_fe.presentation.components.ScholarshipCardSkeleton
 import com.example.scholarlens_fe.util.DateTimeUtils
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
-private val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+private val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
+private val INPUT_DMY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-private fun formatIsoDateOrDash(input: String?): String {
-	if (input.isNullOrBlank()) return "-"
-	return DateTimeUtils.parseIsoToLocalDateTime(input)?.format(DISPLAY_DATE_FORMATTER) ?: input
+private fun formatDateOrDash(input: String?): String {
+    if (input.isNullOrBlank()) return "-"
+    DateTimeUtils.parseIsoToLocalDateTime(input)?.let {
+        return it.format(DISPLAY_DATE_FORMATTER)
+    }
+    return try {
+        LocalDate.parse(input, INPUT_DMY_FORMATTER).format(DISPLAY_DATE_FORMATTER)
+    } catch (_: DateTimeParseException) {
+        input
+    }
 }
 
 /**
@@ -91,31 +101,7 @@ fun HomeScreen(
                 .padding(bottom = 12.dp)
         )
 
-        // Filter Row
-        FilterRow(
-            selectedCountry = uiState.selectedCountry,
-            selectedFundingLevel = uiState.selectedFundingLevel,
-            selectedScholarshipType = uiState.selectedScholarshipType,
-            selectedFieldOfStudy = uiState.selectedFieldOfStudy,
-            onCountrySelected = viewModel::setCountryFilter,
-            onFundingLevelSelected = viewModel::setFundingLevelFilter,
-            onScholarshipTypeSelected = viewModel::setScholarshipTypeFilter,
-            onFieldOfStudySelected = viewModel::setFieldOfStudyFilter,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        // Active Filters Chips
-        FilterChipsRow(
-            selectedCountry = uiState.selectedCountry,
-            selectedFundingLevel = uiState.selectedFundingLevel,
-            selectedScholarshipType = uiState.selectedScholarshipType,
-            selectedFieldOfStudy = uiState.selectedFieldOfStudy,
-            onCountryRemove = { viewModel.setCountryFilter(null) },
-            onFundingLevelRemove = { viewModel.setFundingLevelFilter(null) },
-            onScholarshipTypeRemove = { viewModel.setScholarshipTypeFilter(null) },
-            onFieldOfStudyRemove = { viewModel.setFieldOfStudyFilter(null) },
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // Filter UI temporarily removed as requested
 
         // Scholarship Count
         if (!uiState.isLoading && !uiState.isEmpty && uiState.scholarships.isNotEmpty()) {
@@ -251,6 +237,19 @@ fun ScholarshipCard(
     scholarship: Scholarship
 ) {
     val context = LocalContext.current
+    val daysBadge = scholarship.daysUntilDeadline?.let { days ->
+        val trimmed = days.trim()
+        val parsed = trimmed.toIntOrNull()
+        when {
+            trimmed.equals("expired", ignoreCase = true) || parsed != null && parsed <= 0 -> {
+                stringResource(R.string.deadline_expired) to MaterialTheme.colorScheme.error
+            }
+            parsed != null -> {
+                stringResource(R.string.deadline_days_left, parsed) to MaterialTheme.colorScheme.primary
+            }
+            else -> trimmed to MaterialTheme.colorScheme.primary
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -271,16 +270,15 @@ fun ScholarshipCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = scholarship.scholarshipName,
+                        text = scholarship.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    // Country
-                    scholarship.country?.let { country ->
+                    scholarship.university?.let { university ->
                         Text(
-                            text = country,
+                            text = university,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -288,19 +286,30 @@ fun ScholarshipCard(
                     }
                 }
 
-                IconButton(onClick = { /* TODO: Bookmark functionality */ }) {
-                    Icon(
-                        imageVector = Icons.Default.BookmarkBorder,
-                        contentDescription = stringResource(R.string.bookmark_scholarship),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                // Bookmark removed as requested
+            }
+
+            daysBadge?.let { (label, color) ->
+                Surface(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .align(Alignment.End),
+                    color = color.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = color,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
 
-            // Scholarship Type
-            scholarship.scholarshipType?.let { type ->
+            scholarship.fieldOfStudy?.let { field ->
                 Text(
-                    text = type,
+                    text = field,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
@@ -308,40 +317,14 @@ fun ScholarshipCard(
                 )
             }
 
-            // Field of Study (Eligible Fields)
-            scholarship.eligibleFields?.takeIf { it.isNotEmpty() }?.let { fields ->
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    fields.take(2).forEach { field ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = field,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Funding Info
-            val fundingText = scholarship.amount ?: scholarship.fundingLevel
-            fundingText?.let { funding ->
+            scholarship.amount?.let { amount ->
                 Surface(
                     modifier = Modifier.padding(top = 8.dp),
                     color = Color(0xFF4CAF50).copy(alpha = 0.1f),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = funding,
+                        text = amount,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Medium,
@@ -351,7 +334,7 @@ fun ScholarshipCard(
             }
 
             // Application Period
-            if (scholarship.startDate != null || scholarship.endDate != null) {
+            if (scholarship.openDate != null || scholarship.closeDate != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -386,7 +369,7 @@ fun ScholarshipCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-							text = formatIsoDateOrDash(scholarship.startDate),
+							text = formatDateOrDash(scholarship.openDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -399,7 +382,7 @@ fun ScholarshipCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-							text = formatIsoDateOrDash(scholarship.endDate ?: scholarship.deadline),
+							text = formatDateOrDash(scholarship.closeDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -408,7 +391,7 @@ fun ScholarshipCard(
             }
 
             // View Official Page Button
-            scholarship.website?.let { website ->
+            scholarship.url?.let { website ->
                 Button(
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(website))
