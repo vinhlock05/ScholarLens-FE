@@ -111,6 +111,16 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        topBar = {
+            Text(
+                text = "My Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
@@ -120,29 +130,6 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "My Profile",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-//                if (!uiState.isEditing) {
-//                    IconButton(onClick = { viewModel.toggleEditMode() }) {
-//                        Icon(
-//                            Icons.Default.Edit,
-//                            contentDescription = "Edit Profile",
-//                            tint = MaterialTheme.colorScheme.primary
-//                        )
-//                    }
-//                }
-            }
-
             // Content with scroll
             Column(
                 modifier = Modifier

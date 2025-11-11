@@ -79,70 +79,74 @@ fun HomeScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
-        // Title
-        Text(
-            text = stringResource(R.string.browse_scholarships),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
-
-        // Search Bar
-        SearchBar(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
-        )
-
-        // Filter UI temporarily removed as requested
-
-        // Scholarship Count
-        if (!uiState.isLoading && !uiState.isEmpty && uiState.scholarships.isNotEmpty()) {
+    Scaffold(
+        topBar = {
             Text(
-                text = stringResource(
-                    R.string.scholarships_available,
-                    uiState.totalCount
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp)
+                text = stringResource(R.string.browse_scholarships),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
             )
         }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+        ) {
+            // Search Bar
+            SearchBar(
+                query = uiState.searchQuery,
+                onQueryChange = viewModel::onSearchQueryChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+            )
 
-        // Content with Infinite Scroll
-        when {
-            uiState.isLoading && uiState.scholarships.isEmpty() -> {
-                // Show skeleton loaders for initial load
-                SkeletonLoadingState()
-            }
-            uiState.error != null && uiState.scholarships.isEmpty() -> {
-                // Show error only if no data
-                ErrorState(
-                    error = uiState.error!!,
-                    onRetry = viewModel::retry
+            // Scholarship Count
+            if (!uiState.isLoading && !uiState.isEmpty && uiState.scholarships.isNotEmpty()) {
+                Text(
+                    text = stringResource(
+                        R.string.scholarships_available,
+                        uiState.totalCount
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            uiState.isEmpty && !uiState.isLoading -> {
-                // Show empty state
-                EmptyState()
-            }
-            else -> {
-                // Show list with infinite scroll
-                ScholarshipListWithInfiniteScroll(
-                    scholarships = uiState.scholarships,
-                    isLoadingMore = uiState.isLoadingMore,
-                    hasMore = uiState.hasMore,
-                    listState = listState,
-                    onError = if (uiState.error != null) uiState.error else null,
-                    onRetry = viewModel::retry
-                )
+
+            // Content with Infinite Scroll
+            when {
+                uiState.isLoading && uiState.scholarships.isEmpty() -> {
+                    // Show skeleton loaders for initial load
+                    SkeletonLoadingState()
+                }
+                uiState.error != null && uiState.scholarships.isEmpty() -> {
+                    // Show error only if no data
+                    ErrorState(
+                        error = uiState.error!!,
+                        onRetry = viewModel::retry
+                    )
+                }
+                uiState.isEmpty && !uiState.isLoading -> {
+                    // Show empty state
+                    EmptyState()
+                }
+                else -> {
+                    // Show list with infinite scroll
+                    ScholarshipListWithInfiniteScroll(
+                        scholarships = uiState.scholarships,
+                        isLoadingMore = uiState.isLoadingMore,
+                        hasMore = uiState.hasMore,
+                        listState = listState,
+                        onError = if (uiState.error != null) uiState.error else null,
+                        onRetry = viewModel::retry
+                    )
+                }
             }
         }
     }

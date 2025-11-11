@@ -197,6 +197,10 @@ fun MainScreen(
                             },
                             selected = selected,
                             onClick = {
+                                // If already on this destination, do nothing
+                                if (selected) {
+                                    return@NavigationBarItem
+                                }
                                 navController.navigate(destination.route) {
                                     // Pop up to the start destination of the graph to
                                     // avoid building up a large stack of destinations
