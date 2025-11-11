@@ -185,15 +185,15 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Scholarship Routing",
-                fontSize = 24.sp,
+                text = "Scholar Lens",
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = "Find your perfect scholarship match",
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
 
