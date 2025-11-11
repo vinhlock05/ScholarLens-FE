@@ -286,13 +286,7 @@ fun ScholarshipCard(
                     }
                 }
 
-                IconButton(onClick = { /* TODO: Bookmark functionality */ }) {
-                    Icon(
-                        imageVector = Icons.Default.BookmarkBorder,
-                        contentDescription = stringResource(R.string.bookmark_scholarship),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                // Bookmark removed as requested
             }
 
             daysBadge?.let { (label, color) ->

@@ -3,7 +3,7 @@ package com.example.scholarlens_fe.presentation.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -32,15 +32,15 @@ sealed class NavDestination(
 
     // Main app screens
     data object Home : NavDestination(
-        route = "home",
-        title = "Home",
+        route = "browse",
+        title = "Browse",
         icon = Icons.Default.Home
     )
 
-    data object Search : NavDestination(
-        route = "search",
-        title = "Search",
-        icon = Icons.Default.Search
+    data object Matches : NavDestination(
+        route = "matches",
+        title = "My Matches",
+        icon = Icons.Default.Star
     )
 
     data object Profile : NavDestination(
@@ -55,6 +55,6 @@ sealed class NavDestination(
  */
 val bottomNavDestinations = listOf(
     NavDestination.Home,
-    NavDestination.Search,
+    NavDestination.Matches,
     NavDestination.Profile
 )

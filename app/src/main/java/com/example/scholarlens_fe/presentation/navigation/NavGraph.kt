@@ -10,7 +10,7 @@ import com.example.scholarlens_fe.presentation.screens.auth.LoginScreen
 import com.example.scholarlens_fe.presentation.screens.auth.RegisterScreen
 import com.example.scholarlens_fe.presentation.screens.home.HomeScreen
 import com.example.scholarlens_fe.presentation.screens.profile.ProfileScreen
-import com.example.scholarlens_fe.presentation.screens.search.SearchScreen
+import com.example.scholarlens_fe.presentation.screens.matches.MatchesScreen
 
 /**
  * Navigation graph for the app
@@ -70,8 +70,8 @@ fun NavGraph(
             HomeScreen()
         }
 
-        composable(route = NavDestination.Search.route) {
-            SearchScreen()
+        composable(route = NavDestination.Matches.route) {
+            MatchesScreen(navController = navController)
         }
 
         composable(route = NavDestination.Profile.route) {
