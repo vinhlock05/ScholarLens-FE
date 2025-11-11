@@ -11,6 +11,7 @@ import com.example.scholarlens_fe.presentation.screens.auth.RegisterScreen
 import com.example.scholarlens_fe.presentation.screens.home.HomeScreen
 import com.example.scholarlens_fe.presentation.screens.profile.ProfileScreen
 import com.example.scholarlens_fe.presentation.screens.matches.MatchesScreen
+import com.example.scholarlens_fe.presentation.screens.profile.ProfileSetupScreen
 
 /**
  * Navigation graph for the app
@@ -30,9 +31,15 @@ fun NavGraph(
         // Authentication screens
         composable(route = NavDestination.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(NavDestination.Home.route) {
-                        popUpTo(NavDestination.Login.route) { inclusive = true }
+                onLoginSuccess = { isProfileComplete ->
+                    if (isProfileComplete) {
+                        navController.navigate(NavDestination.Home.route) {
+                            popUpTo(NavDestination.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(NavDestination.ProfileSetup.route) {
+                            popUpTo(NavDestination.Login.route) { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToRegister = {
@@ -47,12 +54,24 @@ fun NavGraph(
         composable(route = NavDestination.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = {
-                    navController.navigate(NavDestination.Home.route) {
+                    navController.navigate(NavDestination.ProfileSetup.route) {
                         popUpTo(NavDestination.Login.route) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = NavDestination.ProfileSetup.route) {
+            ProfileSetupScreen(
+                onSetupComplete = {
+                    // Navigate to Home after profile setup is complete
+                    // MainActivity will verify profile completeness and allow navigation
+                    navController.navigate(NavDestination.Home.route) {
+                        popUpTo(NavDestination.Login.route) { inclusive = true }
+                    }
                 }
             )
         }

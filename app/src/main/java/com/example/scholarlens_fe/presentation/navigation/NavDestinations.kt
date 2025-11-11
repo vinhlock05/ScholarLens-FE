@@ -30,6 +30,11 @@ sealed class NavDestination(
         title = "Forgot Password"
     )
 
+    data object ProfileSetup : NavDestination(
+        route = "profile_setup",
+        title = "Complete Profile"
+    )
+
     // Main app screens
     data object Home : NavDestination(
         route = "browse",
