@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scholarlens_fe.domain.model.Scholarship
 import com.example.scholarlens_fe.domain.model.ScholarshipFilter
+import com.example.scholarlens_fe.domain.model.SortOrder
 import com.example.scholarlens_fe.domain.usecase.SearchScholarshipsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,16 +28,11 @@ data class HomeUiState(
     val hasMore: Boolean = false,
     val currentPage: Int = 0,
     val pageSize: Int = 20,
-    // Filters
-    val selectedCountry: String? = null,
-    val selectedFundingLevel: String? = null,
-    val selectedScholarshipType: String? = null,
+    val selectedUniversity: String? = null,
     val selectedFieldOfStudy: String? = null,
-    // Filter options for dropdowns
-    val availableCountries: List<String> = emptyList(),
-    val availableFundingLevels: List<String> = emptyList(),
-    val availableScholarshipTypes: List<String> = emptyList(),
-    val availableFieldsOfStudy: List<String> = emptyList()
+    val selectedAmount: String? = null,
+    val sortByDeadline: Boolean = true,
+    val sortOrder: SortOrder = SortOrder.DESC
 )
 
 /**
@@ -115,10 +111,12 @@ class HomeViewModel @Inject constructor(
         val state = _uiState.value
         return ScholarshipFilter(
             keyword = state.searchQuery.trim(),
-            country = state.selectedCountry,
-            fundingLevel = state.selectedFundingLevel,
-            scholarshipType = state.selectedScholarshipType,
-            eligibleFields = state.selectedFieldOfStudy?.let { listOf(it) }
+            name = null,
+            university = state.selectedUniversity,
+            fieldOfStudy = state.selectedFieldOfStudy,
+            amount = state.selectedAmount,
+            sortByDeadline = state.sortByDeadline,
+            sortOrder = state.sortOrder
         )
     }
 
@@ -149,32 +147,23 @@ class HomeViewModel @Inject constructor(
     /**
      * Apply country filter
      */
-    fun setCountryFilter(country: String?) {
-        _uiState.update { it.copy(selectedCountry = country) }
+    fun setUniversityFilter(university: String?) {
+        _uiState.update { it.copy(selectedUniversity = university) }
         loadScholarships(reset = true)
     }
 
-    /**
-     * Apply funding level filter
-     */
-    fun setFundingLevelFilter(fundingLevel: String?) {
-        _uiState.update { it.copy(selectedFundingLevel = fundingLevel) }
-        loadScholarships(reset = true)
-    }
-
-    /**
-     * Apply scholarship type filter
-     */
-    fun setScholarshipTypeFilter(scholarshipType: String?) {
-        _uiState.update { it.copy(selectedScholarshipType = scholarshipType) }
-        loadScholarships(reset = true)
-    }
-
-    /**
-     * Apply field of study filter
-     */
     fun setFieldOfStudyFilter(fieldOfStudy: String?) {
         _uiState.update { it.copy(selectedFieldOfStudy = fieldOfStudy) }
+        loadScholarships(reset = true)
+    }
+
+    fun setAmountFilter(amount: String?) {
+        _uiState.update { it.copy(selectedAmount = amount) }
+        loadScholarships(reset = true)
+    }
+
+    fun toggleSortByDeadline(enabled: Boolean) {
+        _uiState.update { it.copy(sortByDeadline = enabled) }
         loadScholarships(reset = true)
     }
 
@@ -184,10 +173,11 @@ class HomeViewModel @Inject constructor(
     fun clearFilters() {
         _uiState.update {
             it.copy(
-                selectedCountry = null,
-                selectedFundingLevel = null,
-                selectedScholarshipType = null,
+                selectedUniversity = null,
                 selectedFieldOfStudy = null,
+                selectedAmount = null,
+                sortByDeadline = false,
+                sortOrder = SortOrder.ASC,
                 searchQuery = ""
             )
         }

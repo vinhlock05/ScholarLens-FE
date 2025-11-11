@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Backend cung cấp GraphQL API để tìm kiếm và khớp học bổng (Scholarships). GraphQL API cho phép combine keyword search và filters trong một query, đồng thời cung cấp type-safe schema.
+Backend cung cấp GraphQL API để tìm kiếm và khớp học bổng (Scholarships). GraphQL API cho phép kết hợp keyword search và filters trong một query, đồng thời cung cấp type-safe schema.
 
 ## 🔗 GraphQL Endpoint
 
@@ -30,14 +30,17 @@ Backend cung cấp 2 queries chính:
 1. **`searchEs`** - Unified search combining keyword and structured filters
 2. **`matchScholarships`** - Recommend scholarships for a given user profile
 
+---
+
 ## 🔍 Query 1: searchEs
 
 ### Description
 
-Unified search query cho phép combine keyword search và structured filters trong một query. Hỗ trợ 3 modes:
+Unified search query cho phép kết hợp keyword search và structured filters trong một query. Hỗ trợ 4 modes:
+- **No query, no filters**: Trả về tất cả scholarships, có thể sort theo deadline
 - **Keyword-only**: Chỉ search theo keyword
 - **Filters-only**: Chỉ filter (không có keyword)
-- **Keyword + Filters**: Combine cả 2, intersect results và preserve keyword ranking
+- **Keyword + Filters**: Kết hợp cả 2, intersect results và preserve keyword ranking
 
 ### Signature
 
@@ -45,8 +48,10 @@ Unified search query cho phép combine keyword search và structured filters tro
 searchEs(
   collection: String!
   q: String
-  filters: [FilterInput!]
+  filter: ScholarshipFilter
   inter_field_operator: InterFieldOperator = AND
+  sort_by_deadline: Boolean = false
+  sort_order: SortOrder = ASC
   size: Int = 10
   offset: Int = 0
 ): SearchResult!
@@ -56,10 +61,12 @@ searchEs(
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `collection` | String | ✅ Yes | - | Tên collection (thường là `"scholarships"`) |
-| `q` | String | ❌ No | `null` | Từ khóa tìm kiếm (full-text) |
-| `filters` | [FilterInput!] | ❌ No | `[]` | Danh sách filters |
+| `collection` | String | ✅ Yes | - | Tên collection/index (thường là `"scholar_lens"` hoặc `"scholarships"`) |
+| `q` | String | ❌ No | `null` | Từ khóa tìm kiếm (full-text search) |
+| `filter` | ScholarshipFilter | ❌ No | `null` | Filter object với các fields: name, university, field_of_study, amount |
 | `inter_field_operator` | InterFieldOperator | ❌ No | `AND` | Toán tử kết hợp các filters: `AND` hoặc `OR` |
+| `sort_by_deadline` | Boolean | ❌ No | `false` | Có sort theo deadline (close_time) không |
+| `sort_order` | SortOrder | ❌ No | `ASC` | Thứ tự sort: `ASC` hoặc `DESC` |
 | `size` | Int | ❌ No | `10` | Số lượng kết quả trả về (1-100) |
 | `offset` | Int | ❌ No | `0` | Vị trí bắt đầu (dùng cho pagination) |
 
@@ -73,17 +80,54 @@ type SearchResult {
 
 type SearchHit {
   id: String!
-  score: Float!
+  score: Float
   source: ScholarshipSource
 }
 
 type ScholarshipSource {
   name: String
-  country: String
-  startDate: String
-  endDate: String
+  university: String
+  open_time: String
+  close_time: String
   amount: String
-  daysUntilDeadline: Int
+  field_of_study: String
+  url: String
+  days_until_deadline: String  # Computed field: số ngày còn lại hoặc "Expired"
+}
+```
+
+**Lưu ý về `days_until_deadline`:**
+- Trả về số ngày còn lại trước deadline (dạng string)
+- Trả về `"Expired"` nếu deadline đã qua
+- Trả về `null` nếu không có `close_time`
+
+### ScholarshipFilter Input Type
+
+```graphql
+input ScholarshipFilter {
+  name: String
+  university: String
+  field_of_study: String
+  amount: String
+}
+```
+
+**Lưu ý:**
+- Tất cả fields trong `ScholarshipFilter` đều optional
+- Chỉ cần cung cấp các fields muốn filter
+- Mỗi field sẽ được filter với operator `OR` (có thể filter nhiều giá trị trong cùng field)
+
+### Enums
+
+```graphql
+enum InterFieldOperator {
+  AND
+  OR
+}
+
+enum SortOrder {
+  ASC
+  DESC
 }
 ```
 
@@ -94,7 +138,7 @@ type ScholarshipSource {
 ```graphql
 query SearchByKeyword {
   searchEs(
-    collection: "scholarships"
+    collection: "scholar_lens"
     q: "engineering"
     size: 10
     offset: 0
@@ -105,11 +149,13 @@ query SearchByKeyword {
       score
       source {
         name
-        country
-        startDate
-        endDate
+        university
+        open_time
+        close_time
         amount
-        daysUntilDeadline
+        field_of_study
+        url
+        days_until_deadline
       }
     }
   }
@@ -126,19 +172,11 @@ query SearchByKeyword {
 ```graphql
 query FilterScholarships {
   searchEs(
-    collection: "scholarships"
-    filters: [
-      {
-        field: "Country"
-        stringValues: ["Hà Lan", "Đức"]
-        operator: OR
-      }
-      {
-        field: "Funding_Level"
-        stringValues: ["Toàn phần"]
-        operator: OR
-      }
-    ]
+    collection: "scholar_lens"
+    filter: {
+      university: "MIT"
+      field_of_study: "Computer Science"
+    }
     inter_field_operator: AND
     size: 10
     offset: 0
@@ -149,10 +187,10 @@ query FilterScholarships {
       score
       source {
         name
-        country
-        startDate
-        endDate
+        university
+        field_of_study
         amount
+        days_until_deadline
       }
     }
   }
@@ -169,20 +207,12 @@ query FilterScholarships {
 ```graphql
 query SearchWithFilters {
   searchEs(
-    collection: "scholarships"
+    collection: "scholar_lens"
     q: "engineering"
-    filters: [
-      {
-        field: "Country"
-        stringValues: ["UK", "Hà Lan"]
-        operator: OR
-      }
-      {
-        field: "Funding_Level"
-        stringValues: ["Toàn phần", "Bán phần"]
-        operator: OR
-      }
-    ]
+    filter: {
+      university: "MIT"
+      field_of_study: "Computer Science"
+    }
     inter_field_operator: AND
     size: 20
     offset: 0
@@ -193,11 +223,10 @@ query SearchWithFilters {
       score
       source {
         name
-        country
-        startDate
-        endDate
+        university
+        field_of_study
         amount
-        daysUntilDeadline
+        days_until_deadline
       }
     }
   }
@@ -209,79 +238,65 @@ query SearchWithFilters {
 {}
 ```
 
-#### Example 4: Filter with Integer Values
+#### Example 4: Sort by Deadline
 
 ```graphql
-query FilterWithIntValues {
+query SortByDeadline {
   searchEs(
-    collection: "scholarships"
-    filters: [
-      {
-        field: "Min_GPA"
-        intValues: [3, 4]
-        operator: OR
-      }
-    ]
+    collection: "scholar_lens"
+    filter: {
+      field_of_study: "Engineering"
+    }
+    sort_by_deadline: true
+    sort_order: ASC
     size: 10
     offset: 0
   ) {
     total
     items {
       id
-      score
       source {
         name
-        amount
+        close_time
+        days_until_deadline
       }
     }
   }
 }
 ```
 
-### FilterInput Type
+#### Example 5: Get All Scholarships (No Query, No Filters)
 
 ```graphql
-input FilterInput {
-  field: String!
-  stringValues: [String!]
-  intValues: [Int!]
-  floatValues: [Float!]
-  operator: IntraFieldOperator = OR
-}
-
-enum IntraFieldOperator {
-  AND
-  OR
-}
-
-enum InterFieldOperator {
-  AND
-  OR
+query GetAllScholarships {
+  searchEs(
+    collection: "scholar_lens"
+    sort_by_deadline: true
+    sort_order: ASC
+    size: 20
+    offset: 0
+  ) {
+    total
+    items {
+      id
+      source {
+        name
+        university
+        close_time
+        days_until_deadline
+      }
+    }
+  }
 }
 ```
 
-**Lưu ý:**
-- Chỉ cần cung cấp một trong các `*_values` (stringValues, intValues, floatValues)
-- Nếu cung cấp nhiều, chúng sẽ được merge
-- `operator` (IntraFieldOperator) áp dụng cho các giá trị trong cùng một filter
-- `inter_field_operator` áp dụng giữa các filters khác nhau
-
-### Common Filter Fields
-
-| Field | Type | Example Values |
-|-------|------|----------------|
-| `Country` | String | `"Hà Lan"`, `"Đức"`, `"UK"`, `"USA"` |
-| `Funding_Level` | String | `"Toàn phần"`, `"Bán phần"`, `"Học phí"` |
-| `Scholarship_Type` | String | `"Master"`, `"PhD"`, `"Bachelor"` |
-| `Application_Mode` | String | `"Online"`, `"Offline"`, `"Both"` |
-| `Eligible_Fields` | String | `"Engineering"`, `"Computer Science"` |
-| `Min_GPA` | Int/Float | `3`, `3.5`, `4` |
+---
 
 ## 🎯 Query 2: matchScholarships
 
 ### Description
 
-Recommend scholarships dựa trên user profile. Query này tự động convert user profile thành filters và tìm scholarships phù hợp.
+Recommend scholarships dựa trên user profile. Query này tự động convert user profile thành filters và tìm scholarships phù hợp. Sử dụng OR operator giữa các filters để có kết quả đa dạng hơn.
 
 ### Signature
 
@@ -305,16 +320,20 @@ matchScholarships(
 
 ```graphql
 input UserProfileInput {
-  gpa_range_4: Float
-  degree: String
-  field_of_study: String
-  desired_scholarship_type: [String!]
-  desired_funding_level: [String!]
-  desired_application_mode: [String!]
-  deadline_after: String
-  deadline_before: String
+  name: String                    # Scholarship name keyword search
+  university: [String!]           # List of preferred universities
+  field_of_study: String          # Desired field of study
+  min_amount: String              # Minimum scholarship amount
+  max_amount: String              # Maximum scholarship amount
+  deadline_after: String          # Only scholarships closing after this date (DD/MM/YYYY)
+  deadline_before: String         # Only scholarships closing before this date (DD/MM/YYYY)
 }
 ```
+
+**Lưu ý:**
+- Tất cả fields đều optional
+- `university` là array để có thể filter nhiều universities
+- `deadline_after` và `deadline_before` sử dụng format `DD/MM/YYYY`
 
 ### Return Type
 
@@ -331,13 +350,18 @@ type MatchItem {
   id: String!
   esScore: Float!
   matchScore: Float!
-  matchedFields: [String!]!
+  matchedFields: [String!]!       # List of reasons why this scholarship matched
   summaryName: String
   summaryStartDate: String
   summaryEndDate: String
   summaryAmount: String
 }
 ```
+
+**Lưu ý về `matchedFields`:**
+- Trả về danh sách các lý do tại sao scholarship này match với profile
+- Format: `["field_of_study_match:Engineering", "university_match:MIT", ...]`
+- Giúp frontend hiển thị lý do recommendation
 
 ### Examples
 
@@ -347,14 +371,12 @@ type MatchItem {
 query MatchScholarships {
   matchScholarships(
     profile: {
-      gpa_range_4: 3.5
-      degree: "Bachelor"
-      field_of_study: "Engineering"
-      desired_scholarship_type: ["Master", "PhD"]
-      desired_funding_level: ["Toàn phần"]
-      desired_application_mode: ["Online"]
-      deadline_after: "2024-01-01"
-      deadline_before: "2024-12-31"
+      name: "engineering"
+      university: ["MIT", "Stanford"]
+      field_of_study: "Computer Science"
+      min_amount: "1000"
+      deadline_after: "01/01/2024"
+      deadline_before: "31/12/2024"
     }
     size: 10
     offset: 0
@@ -389,7 +411,7 @@ query MatchSimpleProfile {
   matchScholarships(
     profile: {
       field_of_study: "Computer Science"
-      desired_countries: ["UK", "USA"]
+      university: ["MIT", "Harvard"]
     }
     size: 20
     offset: 0
@@ -424,6 +446,10 @@ query MatchAll {
 }
 ```
 
+**Lưu ý:** Nếu không có profile, query sẽ trả về empty result vì không có filters để apply.
+
+---
+
 ## 📡 HTTP Request Format
 
 ### Request Headers
@@ -439,9 +465,19 @@ Authorization: Bearer {firebase_id_token}
 
 ```json
 {
-  "query": "query SearchScholarships { ... }",
+  "query": "query SearchScholarships { searchEs(collection: \"scholar_lens\", q: \"engineering\") { total items { id source { name } } } }",
+  "variables": {},
+  "operationName": "SearchScholarships"
+}
+```
+
+Hoặc sử dụng variables:
+
+```json
+{
+  "query": "query SearchScholarships($collection: String!, $q: String) { searchEs(collection: $collection, q: $q) { total items { id source { name } } } }",
   "variables": {
-    "collection": "scholarships",
+    "collection": "scholar_lens",
     "q": "engineering"
   },
   "operationName": "SearchScholarships"
@@ -462,11 +498,13 @@ Authorization: Bearer {firebase_id_token}
           "score": 8.5,
           "source": {
             "name": "Chevening Scholarship",
-            "country": "UK",
-            "startDate": "2024-01-01",
-            "endDate": "2024-12-31",
-            "amount": "Toàn phần",
-            "daysUntilDeadline": 365
+            "university": "Various UK Universities",
+            "open_time": "01/09/2024",
+            "close_time": "01/11/2024",
+            "amount": "Full tuition + living expenses",
+            "field_of_study": "All fields",
+            "url": "https://example.com",
+            "days_until_deadline": "45"
           }
         }
       ]
@@ -488,6 +526,8 @@ Authorization: Bearer {firebase_id_token}
   "data": null
 }
 ```
+
+---
 
 ## 💻 Frontend Integration Examples
 
@@ -519,25 +559,39 @@ const client = new ApolloClient({
 });
 ```
 
-#### Query Example
+#### Query Example - searchEs
 
 ```typescript
 import { gql, useQuery } from '@apollo/client';
 
 const SEARCH_SCHOLARSHIPS = gql`
-  query SearchScholarships($collection: String!, $q: String, $filters: [FilterInput!]) {
-    searchEs(collection: $collection, q: $q, filters: $filters, size: 10, offset: 0) {
+  query SearchScholarships(
+    $collection: String!
+    $q: String
+    $filter: ScholarshipFilter
+    $size: Int
+    $offset: Int
+  ) {
+    searchEs(
+      collection: $collection
+      q: $q
+      filter: $filter
+      size: $size
+      offset: $offset
+    ) {
       total
       items {
         id
         score
         source {
           name
-          country
-          startDate
-          endDate
+          university
+          open_time
+          close_time
           amount
-          daysUntilDeadline
+          field_of_study
+          url
+          days_until_deadline
         }
       }
     }
@@ -547,15 +601,14 @@ const SEARCH_SCHOLARSHIPS = gql`
 function SearchComponent() {
   const { loading, error, data } = useQuery(SEARCH_SCHOLARSHIPS, {
     variables: {
-      collection: "scholarships",
+      collection: "scholar_lens",
       q: "engineering",
-      filters: [
-        {
-          field: "Country",
-          stringValues: ["Hà Lan", "Đức"],
-          operator: "OR"
-        }
-      ]
+      filter: {
+        university: "MIT",
+        field_of_study: "Computer Science"
+      },
+      size: 10,
+      offset: 0
     }
   });
 
@@ -568,8 +621,8 @@ function SearchComponent() {
       {data.searchEs.items.map(item => (
         <div key={item.id}>
           <h3>{item.source.name}</h3>
-          <p>Country: {item.source.country}</p>
-          <p>Days until deadline: {item.source.daysUntilDeadline}</p>
+          <p>University: {item.source.university}</p>
+          <p>Days until deadline: {item.source.days_until_deadline}</p>
         </div>
       ))}
     </div>
@@ -577,66 +630,137 @@ function SearchComponent() {
 }
 ```
 
-### Kotlin (Apollo Kotlin)
+#### Query Example - matchScholarships
 
-#### Setup Apollo Client
-
-```kotlin
-// build.gradle.kts
-dependencies {
-    implementation("com.apollographql.apollo3:apollo-runtime:3.8.2")
-    implementation("com.apollographql.apollo3:apollo-http-cache:3.8.2")
-}
-
-// Apollo Client
-val apolloClient = ApolloClient.Builder()
-    .serverUrl("http://YOUR_IP:8000/graphql")
-    .addHttpHeader("Authorization", "Bearer $token")
-    .build()
-```
-
-#### Query Example
-
-```kotlin
-// GraphQL Query (SearchScholarships.graphql)
-query SearchScholarships($collection: String!, $q: String, $filters: [FilterInput!]) {
-  searchEs(collection: $collection, q: $q, filters: $filters, size: 10, offset: 0) {
-    total
-    items {
-      id
-      score
-      source {
-        name
-        country
-        startDate
-        endDate
-        amount
-        daysUntilDeadline
+```typescript
+const MATCH_SCHOLARSHIPS = gql`
+  query MatchScholarships(
+    $profile: UserProfileInput
+    $size: Int
+    $offset: Int
+  ) {
+    matchScholarships(
+      profile: $profile
+      size: $size
+      offset: $offset
+    ) {
+      total
+      hasNextPage
+      nextOffset
+      warnings
+      items {
+        id
+        esScore
+        matchScore
+        matchedFields
+        summaryName
+        summaryStartDate
+        summaryEndDate
+        summaryAmount
       }
     }
   }
-}
+`;
 
-// Kotlin Code
-suspend fun searchScholarships(
-    query: String? = null,
-    filters: List<FilterInput>? = null
-): SearchScholarshipsQuery.Data {
-    val response = apolloClient.query(
-        SearchScholarshipsQuery(
-            collection = "scholarships",
-            q = query,
-            filters = filters?.map { filter ->
-                FilterInput(
-                    field = filter.field,
-                    stringValues = filter.stringValues,
-                    operator = filter.operator
-                )
-            }
-        )
-    ).execute()
-    
-    return response.dataAssertNoErrors
+function MatchComponent() {
+  const { loading, error, data } = useQuery(MATCH_SCHOLARSHIPS, {
+    variables: {
+      profile: {
+        field_of_study: "Computer Science",
+        university: ["MIT", "Stanford"],
+        deadline_after: "01/01/2024",
+        deadline_before: "31/12/2024"
+      },
+      size: 10,
+      offset: 0
+    }
+  });
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+
+  return (
+    <div>
+      <p>Total: {data.matchScholarships.total}</p>
+      {data.matchScholarships.items.map(item => (
+        <div key={item.id}>
+          <h3>{item.summaryName}</h3>
+          <p>Match Score: {item.esScore}</p>
+          <p>Matched Fields: {item.matchedFields.join(", ")}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### React Query / Fetch Example
+
+```typescript
+async function searchScholarships(
+  collection: string,
+  q?: string,
+  filter?: {
+    name?: string;
+    university?: string;
+    field_of_study?: string;
+    amount?: string;
+  },
+  size: number = 10,
+  offset: number = 0
+) {
+  const token = await getFirebaseToken();
+  
+  const query = `
+    query SearchScholarships(
+      $collection: String!
+      $q: String
+      $filter: ScholarshipFilter
+      $size: Int
+      $offset: Int
+    ) {
+      searchEs(
+        collection: $collection
+        q: $q
+        filter: $filter
+        size: $size
+        offset: $offset
+      ) {
+        total
+        items {
+          id
+          score
+          source {
+            name
+            university
+            close_time
+            days_until_deadline
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch('http://YOUR_IP:8000/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        collection,
+        q,
+        filter,
+        size,
+        offset
+      }
+    })
+  });
+
+  const result = await response.json();
+  return result.data.searchEs;
 }
 ```
 
@@ -651,7 +775,7 @@ curl -X POST http://YOUR_IP:8000/graphql \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "query": "query { searchEs(collection: \"scholarships\", q: \"engineering\", size: 10) { total items { id score source { name country } } } }"
+    "query": "query { searchEs(collection: \"scholar_lens\", q: \"engineering\", size: 10) { total items { id score source { name university days_until_deadline } } } }"
   }'
 
 # Match query
@@ -659,24 +783,38 @@ curl -X POST http://YOUR_IP:8000/graphql \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "query": "query { matchScholarships(profile: { field_of_study: \"Engineering\", desired_funding_level: [\"Toàn phần\"] }, size: 10) { total items { id esScore summaryName } } }"
+    "query": "query { matchScholarships(profile: { field_of_study: \"Engineering\", university: [\"MIT\"] }, size: 10) { total items { id esScore summaryName matchedFields } } }"
   }'
 ```
+
+---
 
 ## 🔄 Pagination
 
 ### Using offset-based Pagination
 
 ```graphql
+# Page 1
 query SearchPage1 {
-  searchEs(collection: "scholarships", q: "engineering", size: 10, offset: 0) {
+  searchEs(
+    collection: "scholar_lens"
+    q: "engineering"
+    size: 10
+    offset: 0
+  ) {
     total
     items { id source { name } }
   }
 }
 
+# Page 2
 query SearchPage2 {
-  searchEs(collection: "scholarships", q: "engineering", size: 10, offset: 10) {
+  searchEs(
+    collection: "scholar_lens"
+    q: "engineering"
+    size: 10
+    offset: 10
+  ) {
     total
     items { id source { name } }
   }
@@ -687,7 +825,13 @@ query SearchPage2 {
 
 ```graphql
 query MatchWithPagination {
-  matchScholarships(profile: {...}, size: 10, offset: 0) {
+  matchScholarships(
+    profile: {
+      field_of_study: "Engineering"
+    }
+    size: 10
+    offset: 0
+  ) {
     total
     hasNextPage
     nextOffset
@@ -695,9 +839,15 @@ query MatchWithPagination {
   }
 }
 
-# Next page
+# Next page - use nextOffset from previous response
 query MatchNextPage {
-  matchScholarships(profile: {...}, size: 10, offset: 10) {
+  matchScholarships(
+    profile: {
+      field_of_study: "Engineering"
+    }
+    size: 10
+    offset: 10  # Use nextOffset from previous query
+  ) {
     total
     hasNextPage
     nextOffset
@@ -705,6 +855,8 @@ query MatchNextPage {
   }
 }
 ```
+
+---
 
 ## 🎯 Best Practices
 
@@ -715,13 +867,13 @@ Chỉ request các fields cần thiết để giảm response size:
 ```graphql
 # ✅ Good - chỉ lấy fields cần thiết
 query {
-  searchEs(collection: "scholarships", q: "engineering") {
+  searchEs(collection: "scholar_lens", q: "engineering") {
     total
     items {
       id
       source {
         name
-        country
+        university
       }
     }
   }
@@ -729,18 +881,20 @@ query {
 
 # ❌ Bad - lấy tất cả fields (không cần thiết)
 query {
-  searchEs(collection: "scholarships", q: "engineering") {
+  searchEs(collection: "scholar_lens", q: "engineering") {
     total
     items {
       id
       score
       source {
         name
-        country
-        startDate
-        endDate
+        university
+        open_time
+        close_time
         amount
-        daysUntilDeadline
+        field_of_study
+        url
+        days_until_deadline
       }
     }
   }
@@ -755,11 +909,11 @@ Sử dụng GraphQL để combine keyword search và filters trong 1 query:
 # ✅ Good - combine trong 1 query
 query {
   searchEs(
-    collection: "scholarships"
+    collection: "scholar_lens"
     q: "engineering"
-    filters: [
-      { field: "Country", stringValues: ["UK"], operator: OR }
-    ]
+    filter: {
+      university: "MIT"
+    }
   ) {
     total
     items { id source { name } }
@@ -795,26 +949,14 @@ const token = await firebaseAuth.currentUser?.getIdToken(true);
 apolloClient.setLink(authLink.concat(httpLink));
 ```
 
-## 🔍 GraphQL Playground / GraphiQL
+### 5. Date Format
 
-Backend có thể có GraphQL Playground để test queries. Truy cập:
+**Lưu ý quan trọng về date format:**
+- `open_time` và `close_time` trong database sử dụng format `DD/MM/YYYY`
+- `deadline_after` và `deadline_before` trong `UserProfileInput` cũng sử dụng format `DD/MM/YYYY`
+- `days_until_deadline` là computed field, trả về số ngày còn lại hoặc `"Expired"`
 
-```
-http://YOUR_IP:8000/graphql
-```
-
-Nếu có GraphiQL, có thể test queries trực tiếp trong browser.
-
-## 📊 Comparison: GraphQL vs REST API
-
-| Feature | GraphQL | REST API |
-|---------|---------|----------|
-| **Combine search + filter** | ✅ 1 query | ❌ Cần 2 requests |
-| **Field selection** | ✅ Chỉ lấy fields cần | ❌ Trả về tất cả |
-| **Type-safe** | ✅ Schema-based | ❌ Manual validation |
-| **Simplicity** | ❌ Phức tạp hơn | ✅ Đơn giản |
-| **Debugging** | ❌ Khó hơn | ✅ Dễ (cURL/Postman) |
-| **Learning curve** | ❌ Cần học GraphQL | ✅ Quen thuộc |
+---
 
 ## 🚨 Common Issues
 
@@ -842,15 +984,40 @@ Nếu có GraphiQL, có thể test queries trực tiếp trong browser.
 
 **Solution:**
 - Kiểm tra filters có đúng không
-- Kiểm tra collection name
+- Kiểm tra collection name (thường là `"scholar_lens"`)
 - Kiểm tra keyword search có match không
+- Với `matchScholarships`, nếu không có profile sẽ trả về empty result
+
+### 4. Date Format Issues
+
+**Symptom:** Filters không hoạt động với dates
+
+**Solution:**
+- Đảm bảo sử dụng format `DD/MM/YYYY` cho `deadline_after` và `deadline_before`
+- Ví dụ: `"01/01/2024"` không phải `"2024-01-01"`
+
+---
+
+## 📊 Comparison: GraphQL vs REST API
+
+| Feature | GraphQL | REST API |
+|---------|---------|----------|
+| **Combine search + filter** | ✅ 1 query | ❌ Cần 2 requests |
+| **Field selection** | ✅ Chỉ lấy fields cần | ❌ Trả về tất cả |
+| **Type-safe** | ✅ Schema-based | ❌ Manual validation |
+| **Simplicity** | ❌ Phức tạp hơn | ✅ Đơn giản |
+| **Debugging** | ❌ Khó hơn | ✅ Dễ (cURL/Postman) |
+| **Learning curve** | ❌ Cần học GraphQL | ✅ Quen thuộc |
+
+---
 
 ## 📚 References
 
 - [GraphQL Documentation](https://graphql.org/learn/)
 - [Apollo Client Documentation](https://www.apollographql.com/docs/react/)
-- [Apollo Kotlin Documentation](https://www.apollographql.com/docs/kotlin/)
 - [Strawberry GraphQL](https://strawberry.rocks/)
+
+---
 
 ## 📝 Complete Query Examples
 
@@ -859,26 +1026,15 @@ Nếu có GraphiQL, có thể test queries trực tiếp trong browser.
 ```graphql
 query FullSearch {
   searchEs(
-    collection: "scholarships"
+    collection: "scholar_lens"
     q: "engineering master"
-    filters: [
-      {
-        field: "Country"
-        stringValues: ["UK", "Hà Lan", "Đức"]
-        operator: OR
-      }
-      {
-        field: "Funding_Level"
-        stringValues: ["Toàn phần", "Bán phần"]
-        operator: OR
-      }
-      {
-        field: "Scholarship_Type"
-        stringValues: ["Master", "PhD"]
-        operator: OR
-      }
-    ]
+    filter: {
+      university: "MIT"
+      field_of_study: "Computer Science"
+    }
     inter_field_operator: AND
+    sort_by_deadline: true
+    sort_order: ASC
     size: 20
     offset: 0
   ) {
@@ -888,11 +1044,13 @@ query FullSearch {
       score
       source {
         name
-        country
-        startDate
-        endDate
+        university
+        open_time
+        close_time
         amount
-        daysUntilDeadline
+        field_of_study
+        url
+        days_until_deadline
       }
     }
   }
@@ -905,14 +1063,13 @@ query FullSearch {
 query FullMatch {
   matchScholarships(
     profile: {
-      gpa_range_4: 3.5
-      degree: "Bachelor"
+      name: "engineering"
+      university: ["MIT", "Stanford", "Harvard"]
       field_of_study: "Computer Science"
-      desired_scholarship_type: ["Master", "PhD"]
-      desired_funding_level: ["Toàn phần"]
-      desired_application_mode: ["Online"]
-      deadline_after: "2024-01-01"
-      deadline_before: "2024-12-31"
+      min_amount: "1000"
+      max_amount: "50000"
+      deadline_after: "01/01/2024"
+      deadline_before: "31/12/2024"
     }
     size: 20
     offset: 0
@@ -938,5 +1095,4 @@ query FullMatch {
 ---
 
 **Last Updated:** 2024
-**Version:** 1.0
-
+**Version:** 2.0

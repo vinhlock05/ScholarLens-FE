@@ -1,7 +1,6 @@
 package com.example.scholarlens_fe.di
 
 import com.example.scholarlens_fe.data.api.AuthApiService
-import com.example.scholarlens_fe.data.api.ScholarshipApiService
 import com.example.scholarlens_fe.data.interceptor.AuthInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -88,15 +87,6 @@ object NetworkModule {
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
-    }
-
-    /**
-     * Provides ScholarshipApiService
-     */
-    @Provides
-    @Singleton
-    fun provideScholarshipApiService(retrofit: Retrofit): ScholarshipApiService {
-        return retrofit.create(ScholarshipApiService::class.java)
     }
 
     /**

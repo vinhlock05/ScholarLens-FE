@@ -1,0 +1,39 @@
+query SearchScholarships(
+    $collection: String!
+    $q: String
+    $filter: ScholarshipFilter
+    $interFieldOperator: InterFieldOperator = AND
+    $sortByDeadline: Boolean = false
+    $sortOrder: SortOrder = ASC
+    $size: Int = 10
+    $offset: Int = 0
+) {
+    searchEs(
+        collection: $collection
+        q: $q
+        filter: $filter
+        interFieldOperator: $interFieldOperator
+        sortByDeadline: $sortByDeadline
+        sortOrder: $sortOrder
+        size: $size
+        offset: $offset
+    ) {
+        total
+        items {
+            id
+            score
+            source {
+                name
+                university
+                openTime
+                closeTime
+                amount
+                fieldOfStudy
+                url
+                daysUntilDeadline
+            }
+        }
+    }
+}
+
+

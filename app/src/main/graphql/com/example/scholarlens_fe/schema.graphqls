@@ -1,47 +1,12 @@
-input FilterInput {
-    field: String!
-    stringValues: [String!]
-    intValues: [Int!]
-    floatValues: [Float!]
-    operator: IntraFieldOperator = OR
-}
-
-enum InterFieldOperator {
-    AND
-    OR
-}
-
-enum IntraFieldOperator {
-    AND
-    OR
-}
-
-type MatchItem {
-    id: String!
-    esScore: Float!
-    matchScore: Float!
-    matchedFields: [String!]!
-    summaryName: String
-    summaryStartDate: String
-    summaryEndDate: String
-    summaryAmount: String
-}
-
-type MatchResult {
-    total: Int!
-    items: [MatchItem!]!
-    hasNextPage: Boolean!
-    nextOffset: Int
-    warnings: [String!]
-}
-
 type Query {
     """Unified ES search combining keyword and structured filters"""
     searchEs(
         collection: String!
         q: String
-        filters: [FilterInput!]
+        filter: ScholarshipFilter
         interFieldOperator: InterFieldOperator = AND
+        sortByDeadline: Boolean = false
+        sortOrder: SortOrder = ASC
         size: Int = 10
         offset: Int = 0
     ): SearchResult!
@@ -56,18 +21,18 @@ type Query {
 
 type ScholarshipSource {
     name: String
-    country: String
-    startDate: String
-    endDate: String
+    university: String
+    openTime: String
+    closeTime: String
     amount: String
-
-    """Số ngày còn lại trước hạn nộp (computed field)"""
-    daysUntilDeadline: Int
+    fieldOfStudy: String
+    url: String
+    daysUntilDeadline: String
 }
 
 type SearchHit {
     id: String!
-    score: Float!
+    score: Float
     source: ScholarshipSource
 }
 
@@ -76,13 +41,48 @@ type SearchResult {
     items: [SearchHit!]!
 }
 
+input ScholarshipFilter {
+    name: String
+    university: String
+    field_of_study: String
+    amount: String
+}
+
+enum InterFieldOperator {
+    AND
+    OR
+}
+
+enum SortOrder {
+    ASC
+    DESC
+}
+
+type MatchResult {
+    total: Int!
+    items: [MatchItem!]!
+    hasNextPage: Boolean!
+    nextOffset: Int
+    warnings: [String!]
+}
+
+type MatchItem {
+    id: String!
+    esScore: Float!
+    matchScore: Float!
+    matchedFields: [String!]!
+    summaryName: String
+    summaryStartDate: String
+    summaryEndDate: String
+    summaryAmount: String
+}
+
 input UserProfileInput {
-    gpaRange4: Float
-    degree: String
-    fieldOfStudy: String
-    desiredScholarshipType: [String!]
-    desiredFundingLevel: [String!]
-    desiredApplicationMode: [String!]
-    deadlineAfter: String
-    deadlineBefore: String
+    name: String
+    university: [String!]
+    field_of_study: String
+    min_amount: String
+    max_amount: String
+    deadline_after: String
+    deadline_before: String
 }
