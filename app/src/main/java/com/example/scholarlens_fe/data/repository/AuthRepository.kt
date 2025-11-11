@@ -78,11 +78,87 @@ class AuthRepository @Inject constructor(
                     email = user.email ?: "",
                     name = user.displayName ?: ""
                 )
+                
+                // 5. Fetch profile from backend to check if profile is complete
+                val profileResult = getProfile(user.uid)
+                if (profileResult.isSuccess) {
+                    val profile = profileResult.getOrNull() ?: emptyMap()
+                    val profileComplete = checkProfileComplete(profile)
+                    return AuthResult.Success(
+                        verifyResult.user.copy(
+                            displayName = profile["display_name"]?.toString() ?: verifyResult.user.displayName,
+                            desiredCountries = (profile["desired_countries"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+                            degree = profile["degree"]?.toString(),
+                            gpaRange4 = profile["gpa_range_4"]?.toString(),
+                            fieldOfStudy = profile["field_of_study"]?.toString(),
+                            birthDate = profile["birth_date"]?.toString(),
+                            university = profile["university"]?.toString()
+                        ),
+                        isProfileComplete = profileComplete
+                    )
+                } else {
+                    // If getProfile fails (user doesn't have profile yet), treat as incomplete
+                    return AuthResult.Success(
+                        verifyResult.user,
+                        isProfileComplete = false
+                    )
+                }
             }
             verifyResult
         } catch (e: Exception) {
             AuthResult.Error(getErrorMessage(e))
         }
+    }
+
+    /**
+     * Check if user profile has all required basic information
+     */
+    fun checkProfileComplete(profile: Map<String, Any?>): Boolean {
+        val displayName = profile["display_name"]?.toString()
+        val desiredCountries = profile["desired_countries"] as? List<*>
+        val degree = profile["degree"]?.toString()
+        val gpaRange4 = profile["gpa_range_4"]?.toString()
+        val fieldOfStudy = profile["field_of_study"]?.toString()
+
+        return !displayName.isNullOrBlank() &&
+                desiredCountries != null && desiredCountries.isNotEmpty() &&
+                !degree.isNullOrBlank() &&
+                !gpaRange4.isNullOrBlank() &&
+                !fieldOfStudy.isNullOrBlank()
+    }
+
+    /**
+     * Check if current user's profile is complete based on stored data
+     * This is used when app starts to check if user needs to complete profile
+     */
+    suspend fun checkCurrentUserProfileComplete(): Boolean {
+        val user = currentUser ?: return false
+        val profileResult = getProfile(user.uid)
+        return if (profileResult.isSuccess) {
+            val profile = profileResult.getOrNull() ?: emptyMap()
+            checkProfileComplete(profile)
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Check if current user's profile is complete based on local storage
+     * This is a synchronous check that doesn't require API call
+     * Used for quick checks when app starts
+     */
+    fun checkProfileCompleteFromStorage(): Boolean {
+        val displayName = tokenStorage.getUserDisplayName()
+        val desiredCountries = tokenStorage.getUserDesiredCountries()
+        val degree = tokenStorage.getUserDegree()
+        val gpaRange4 = tokenStorage.getUserGpa()
+        val fieldOfStudy = tokenStorage.getUserFieldOfStudy()
+
+        return !displayName.isNullOrBlank() &&
+                desiredCountries.isNotEmpty() &&
+                !degree.isNullOrBlank() &&
+                !gpaRange4.isNullOrBlank() &&
+                !fieldOfStudy.isNullOrBlank()
     }
 
     /**
@@ -109,6 +185,31 @@ class AuthRepository @Inject constructor(
                     email = user.email,
                     name = user.displayName
                 )
+                
+                // 4. Fetch profile from backend to check if profile is complete
+                val profileResult = getProfile(user.uid)
+                if (profileResult.isSuccess) {
+                    val profile = profileResult.getOrNull() ?: emptyMap()
+                    val profileComplete = checkProfileComplete(profile)
+                    return AuthResult.Success(
+                        verifyResult.user.copy(
+                            displayName = profile["display_name"]?.toString() ?: verifyResult.user.displayName,
+                            desiredCountries = (profile["desired_countries"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+                            degree = profile["degree"]?.toString(),
+                            gpaRange4 = profile["gpa_range_4"]?.toString(),
+                            fieldOfStudy = profile["field_of_study"]?.toString(),
+                            birthDate = profile["birth_date"]?.toString(),
+                            university = profile["university"]?.toString()
+                        ),
+                        isProfileComplete = profileComplete
+                    )
+                } else {
+                    // If getProfile fails (user doesn't have profile yet), treat as incomplete
+                    return AuthResult.Success(
+                        verifyResult.user,
+                        isProfileComplete = false
+                    )
+                }
             }
             verifyResult
         } catch (e: Exception) {
@@ -119,6 +220,7 @@ class AuthRepository @Inject constructor(
     /**
      * Create new user account with email and password
      * After successful Firebase sign-up, gets ID token and verifies with backend
+     * New users always have incomplete profile, so isProfileComplete = false
      */
     suspend fun signUp(email: String, password: String): AuthResult {
         return try {
@@ -139,6 +241,11 @@ class AuthRepository @Inject constructor(
                     userId = user.uid,
                     email = user.email,
                     name = user.displayName
+                )
+                // New users always need to complete profile
+                return AuthResult.Success(
+                    verifyResult.user,
+                    isProfileComplete = false
                 )
             }
             verifyResult
@@ -209,6 +316,64 @@ class AuthRepository @Inject constructor(
         return try {
             firebaseAuth.sendPasswordResetEmail(email).await()
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get user profile
+     * GET /api/v1/auth/profile/{uid}
+     * Retrieves user profile from backend
+     */
+    suspend fun getProfile(uid: String): Result<Map<String, Any?>> {
+        return try {
+            val response = authApiService.getProfile(uid)
+            if (response.isSuccessful && response.body() != null) {
+                val profile = response.body()!!
+                // Save to storage
+                tokenStorage.saveUserProfile(profile)
+                Result.success(profile)
+            } else {
+                Result.failure(Exception("Failed to get profile: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update user profile
+     * PUT /api/v1/auth/profile/{uid}
+     * Updates user profile fields in Firestore (merge fields)
+     * After successful update, fetches the updated profile and saves to storage
+     */
+    suspend fun updateProfile(uid: String, fields: Map<String, Any>): Result<Map<String, Any?>> {
+        return try {
+            // Convert Map to UpdateProfileRequest
+            val request = com.example.scholarlens_fe.domain.model.UpdateProfileRequest(
+                display_name = fields["display_name"] as? String,
+                desired_countries = fields["desired_countries"] as? List<String>,
+                degree = fields["degree"] as? String,
+                gpa_range_4 = fields["gpa_range_4"] as? String,
+                field_of_study = fields["field_of_study"] as? String,
+                birth_date = fields["birth_date"] as? String,
+                university = fields["university"] as? String
+            )
+            
+            val updateResponse = authApiService.updateProfile(uid, request)
+            if (updateResponse.isSuccessful) {
+                // After successful update, fetch the updated profile
+                val getProfileResult = getProfile(uid)
+                if (getProfileResult.isSuccess) {
+                    getProfileResult
+                } else {
+                    // If getProfile fails, still return success but log the error
+                    Result.success(updateResponse.body() ?: emptyMap())
+                }
+            } else {
+                Result.failure(Exception("Failed to update profile: ${updateResponse.message()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -9,6 +9,12 @@ data class User(
     val email: String = "",
     val displayName: String = "",
     val photoUrl: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val desiredCountries: List<String> = emptyList(),
+    val degree: String? = null,
+    val gpaRange4: String? = null,
+    val fieldOfStudy: String? = null,
+    val birthDate: String? = null,
+    val university: String? = null
 )
 

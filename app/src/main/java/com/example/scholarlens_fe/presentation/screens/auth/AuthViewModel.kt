@@ -278,6 +278,7 @@ class AuthViewModel @Inject constructor(
                     passwordError = null,
                     confirmPasswordError = null,
                     isAuthenticated = true,
+                    isProfileComplete = result.isProfileComplete,
                     user = result.user
                 )
             }
@@ -310,6 +311,7 @@ class AuthViewModel @Inject constructor(
         val error: String? = null,
         val errorMessage: String? = null,
         val isAuthenticated: Boolean = false,
+        val isProfileComplete: Boolean = true,
         val user: com.example.scholarlens_fe.domain.model.User? = null,
         val passwordResetSent: Boolean = false
     )

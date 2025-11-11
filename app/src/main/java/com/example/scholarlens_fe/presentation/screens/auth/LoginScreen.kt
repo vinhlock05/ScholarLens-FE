@@ -71,7 +71,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (isProfileComplete: Boolean) -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -186,15 +186,15 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Scholarship Routing",
-                fontSize = 24.sp,
+                text = "Scholar Lens",
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
                 text = "Find your perfect scholarship match",
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
 
@@ -332,7 +332,7 @@ fun LoginScreen(
         // Navigate on success
         LaunchedEffect(uiState.isAuthenticated) {
             if (uiState.isAuthenticated) {
-                onLoginSuccess()
+                onLoginSuccess(uiState.isProfileComplete)
             }
         }
     }
