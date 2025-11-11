@@ -25,6 +25,14 @@
 - **matchScholarships**
   - Accepts optional `MatchProfile` domain object.
   - Sends to backend via `MatchScholarshipsQuery` and maps into `MatchResult` / `MatchItem` models.
+  - All profile fields use camelCase to match backend GraphQL schema:
+    - `name: String?`
+    - `universities: List<String>?` -> GraphQL `university: [String!]`
+    - `fieldOfStudy: String?` -> GraphQL `fieldOfStudy`
+    - `minAmount: String?` -> GraphQL `minAmount`
+    - `maxAmount: String?` -> GraphQL `maxAmount`
+    - `deadlineAfter: String?` -> GraphQL `deadlineAfter`
+    - `deadlineBefore: String?` -> GraphQL `deadlineBefore`
 - Offline fallback: if network fails, uses cached results; deadline sorting works on cached data via a lightweight helper.
 
 ## Domain Models
@@ -34,6 +42,38 @@
   - `MatchProfile` mirrors `UserProfileInput` for recommendations.
   - `MatchResult` / `MatchItem` mirror GraphQL match payload.
 - `MatchScholarshipsUseCase` exposes repository match call for future UI integration.
+
+## Usage Examples
+
+### Search (camelCase)
+```kotlin
+// Build filter
+val filter = ScholarshipFilter(
+  keyword = "engineering",
+  university = "MIT",
+  fieldOfStudy = "Computer Science",
+  sortByDeadline = true,
+  sortOrder = SortOrder.DESC
+)
+
+// Execute
+val result = searchScholarshipsUseCase(filter, size = 10, offset = 0)
+```
+
+### Match (camelCase profile)
+```kotlin
+val profile = MatchProfile(
+  name = "John Doe",
+  universities = listOf("MIT", "Harvard"),
+  fieldOfStudy = "Engineering",
+  minAmount = "1000",
+  maxAmount = "20000",
+  deadlineAfter = "2025-01-01",
+  deadlineBefore = "2025-12-31"
+)
+
+val match = matchScholarshipsUseCase(profile, size = 10, offset = 0)
+```
 
 ## UI Updates
 - `HomeViewModel` & `HomeScreen` now speak GraphQL data:

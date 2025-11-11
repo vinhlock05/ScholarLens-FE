@@ -80,9 +80,9 @@ type MatchItem {
 input UserProfileInput {
     name: String
     university: [String!]
-    field_of_study: String
-    min_amount: String
-    max_amount: String
-    deadline_after: String
-    deadline_before: String
+    fieldOfStudy: String
+    minAmount: String
+    maxAmount: String
+    deadlineAfter: String
+    deadlineBefore: String
 }

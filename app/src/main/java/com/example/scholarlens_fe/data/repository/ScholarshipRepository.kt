@@ -222,11 +222,11 @@ class ScholarshipRepository @Inject constructor(
         return UserProfileInput(
             name = Optional.presentIfNotNull(profile.name?.takeIf { it.isNotBlank() }),
             university = Optional.presentIfNotNull(profile.universities?.takeIf { it.isNotEmpty() }),
-            field_of_study = Optional.presentIfNotNull(profile.fieldOfStudy?.takeIf { it.isNotBlank() }),
-            min_amount = Optional.presentIfNotNull(profile.minAmount?.takeIf { it.isNotBlank() }),
-            max_amount = Optional.presentIfNotNull(profile.maxAmount?.takeIf { it.isNotBlank() }),
-            deadline_after = Optional.presentIfNotNull(profile.deadlineAfter?.takeIf { it.isNotBlank() }),
-            deadline_before = Optional.presentIfNotNull(profile.deadlineBefore?.takeIf { it.isNotBlank() })
+            fieldOfStudy = Optional.presentIfNotNull(profile.fieldOfStudy?.takeIf { it.isNotBlank() }),
+            minAmount = Optional.presentIfNotNull(profile.minAmount?.takeIf { it.isNotBlank() }),
+            maxAmount = Optional.presentIfNotNull(profile.maxAmount?.takeIf { it.isNotBlank() }),
+            deadlineAfter = Optional.presentIfNotNull(profile.deadlineAfter?.takeIf { it.isNotBlank() }),
+            deadlineBefore = Optional.presentIfNotNull(profile.deadlineBefore?.takeIf { it.isNotBlank() })
         )
     }
 
