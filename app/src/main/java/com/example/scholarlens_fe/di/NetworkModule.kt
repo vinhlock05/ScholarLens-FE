@@ -32,7 +32,7 @@ object NetworkModule {
      * 2. Or use BuildConfig to set it based on build variant
      * 3. Example: "http://192.168.1.100:8000/" for local development
      */
-    private const val BASE_URL = "http://10.0.2.2:8000/" // Development
+    private const val BASE_URL = "http://223.130.163.63:8000/" // Development
     // private const val BASE_URL = "https://your-production-domain.com/" // Production
 
     /**

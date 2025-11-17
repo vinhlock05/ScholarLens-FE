@@ -31,7 +31,7 @@ object GraphQLModule {
      * For production:
      * - "https://your-production-domain.com/graphql"
      */
-    private const val GRAPHQL_ENDPOINT = "http://10.0.2.2:8000/graphql"
+    private const val GRAPHQL_ENDPOINT = "http://223.130.163.63:8000/graphql"
     // private const val GRAPHQL_ENDPOINT = "https://your-production-domain.com/graphql"
 
     /**
