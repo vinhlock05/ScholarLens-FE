@@ -76,4 +76,7 @@
     <string name="hide_password">Hide password</string>
     <string name="logout">Log out</string>
     <string name="default_web_client_id">363455079953-ko512hm9cdd4rjs9ph3m4e9b2u0a486v.apps.googleusercontent.com</string>
+
+    <!-- naver clova ocr api key -->
+    <string name="clova_ocr_secret_key">UktnTXFQYnFzRklVRXlxdVdwU1BuSkJDZHJLWWRtU3Y=</string>
 </resources>

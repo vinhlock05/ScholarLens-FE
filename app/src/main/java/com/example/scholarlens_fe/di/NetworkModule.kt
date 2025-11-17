@@ -14,6 +14,10 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import com.example.scholarlens_fe.data.api.ClovaOCRService
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Named
+import android.content.Context
 
 /**
  * Network module for providing API services
@@ -97,5 +101,25 @@ object NetworkModule {
     fun provideAuthApiService(retrofit: Retrofit): AuthApiService {
         return retrofit.create(AuthApiService::class.java)
     }
+
+    @Provides
+    @Singleton
+    @Named("clova_retrofit")
+    fun provideClovaRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://8qs1a8pxk0.apigw.ntruss.com")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideClovaOCRService(@Named("clova_retrofit") retrofit: Retrofit): ClovaOCRService {
+        return retrofit.create(ClovaOCRService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext context: Context): Context = context
 }
 

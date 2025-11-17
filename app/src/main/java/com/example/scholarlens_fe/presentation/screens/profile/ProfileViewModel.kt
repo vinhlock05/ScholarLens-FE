@@ -228,7 +228,7 @@ class ProfileViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isUploadingCV = true, cvUploadError = null) }
 
-                val result = authRepository.uploadCV(uri) { progress ->
+                val result = authRepository.uploadAndProcessCV(uri) { progress ->
                     _uiState.update { it.copy(cvUploadProgress = progress) }
                 }
 
@@ -239,6 +239,10 @@ class ProfileViewModel @Inject constructor(
                         cvUploadProgress = 0f
                     )
                 }
+
+                // Reload user data to get the updated profile with extracted CV data
+                loadUser()
+
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
