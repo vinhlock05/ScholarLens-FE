@@ -1,5 +1,6 @@
 package com.example.scholarlens_fe.data.repository
 
+import android.net.Uri
 import com.example.scholarlens_fe.data.api.AuthApiService
 import com.example.scholarlens_fe.data.storage.TokenStorage
 import com.example.scholarlens_fe.domain.model.AuthResult
@@ -8,7 +9,12 @@ import com.example.scholarlens_fe.domain.model.VerifyTokenRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GetTokenResult
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,6 +26,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore,
+    private val storage: FirebaseStorage,
     private val authApiService: AuthApiService,
     private val tokenStorage: TokenStorage,
 ) {
@@ -395,4 +403,40 @@ class AuthRepository @Inject constructor(
             else -> exception.message ?: "An error occurred"
         }
     }
+    suspend fun uploadCV(uri: Uri, onProgress: (Float) -> Unit = {}): com.example.scholarlens_fe.data.repository.CVUploadResult {
+        return withContext(Dispatchers.IO) {
+            val user = firebaseAuth.currentUser
+                ?: throw Exception("User not authenticated")
+
+            val fileName = "cv_${user.uid}_${System.currentTimeMillis()}.pdf"
+            val storageRef = storage.reference.child("cvs/$fileName")
+
+            val uploadTask = storageRef.putFile(uri)
+
+            uploadTask.addOnProgressListener { taskSnapshot ->
+                val progress = taskSnapshot.bytesTransferred.toFloat() / taskSnapshot.totalByteCount.toFloat()
+                onProgress(progress)
+            }
+
+            val result = uploadTask.await()
+            val downloadUrl = result.storage.downloadUrl.await().toString()
+
+            // Update user document with CV info
+            val userDocRef = firestore.collection("users").document(user.uid)
+            userDocRef.update(
+                mapOf(
+                    "cvUrl" to downloadUrl,
+                    "cvFileName" to fileName,
+                    "cvUploadedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+
+            CVUploadResult(downloadUrl, fileName)
+        }
+    }
 }
+
+data class CVUploadResult(
+    val downloadUrl: String,
+    val fileName: String
+)

@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.net.Uri
+import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -214,6 +216,42 @@ class ProfileViewModel @Inject constructor(
         val gpaRange4: String? = null,
         val gpaError: String? = null,
         val isLoading: Boolean = false,
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
+        val isUploadingCV: Boolean = false,
+        val cvUploadProgress: Float = 0f,
+        val cvFileName: String? = null,
+        val cvUploadError: String? = null
     )
+
+    fun uploadCV(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isUploadingCV = true, cvUploadError = null) }
+
+                val result = authRepository.uploadCV(uri) { progress ->
+                    _uiState.update { it.copy(cvUploadProgress = progress) }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isUploadingCV = false,
+                        cvFileName = result.fileName,
+                        cvUploadProgress = 0f
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUploadingCV = false,
+                        cvUploadError = e.message,
+                        cvUploadProgress = 0f
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearCVUploadError() {
+        _uiState.update { it.copy(cvUploadError = null) }
+    }
 }

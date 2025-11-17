@@ -70,6 +70,12 @@ import com.example.scholarlens_fe.R
 import com.example.scholarlens_fe.presentation.components.DatePickerField
 import com.example.scholarlens_fe.presentation.navigation.NavDestination
 import com.example.scholarlens_fe.util.DateTimeUtils
+import com.example.scholarlens_fe.presentation.components.rememberFilePicker
+import kotlin.text.toInt
+import kotlin.times
+import androidx.compose.material.icons.filled.Close
+import kotlin.text.toInt
+import kotlin.times
 
 /**
  * Profile Screen
@@ -209,23 +215,6 @@ fun ProfileScreen(
                             viewModel = viewModel
                         )
                         
-                        // Upload CV button (only in view mode)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { /* TODO: Handle CV upload */ },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.UploadFile,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                            Text("Upload New CV")
-                        }
-                        
                         // Info Banner
                         Spacer(modifier = Modifier.height(4.dp))
                         Card(
@@ -267,6 +256,109 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(stringResource(R.string.logout))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CVUploadSection(
+    uiState: ProfileViewModel.ProfileUiState,
+    onUploadClick: () -> Unit,
+    onClearError: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Upload your CV",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Show current CV if available
+            uiState.user?.cvFileName?.let { fileName ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.UploadFile,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Current: $fileName",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Upload button or progress
+            if (uiState.isUploadingCV) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Uploading... ${(uiState.cvUploadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onUploadClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.UploadFile,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = if (uiState.user?.cvFileName != null) "Update CV" else "Upload CV"
+                    )
+                }
+            }
+
+            // Show error if any
+            uiState.cvUploadError?.let { error ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onClearError,
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear error",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -405,6 +497,9 @@ fun ViewProfileContent(
     uiState: ProfileViewModel.ProfileUiState,
     viewModel: ProfileViewModel
 ) {
+    val filePicker = rememberFilePicker { uri ->
+        viewModel.uploadCV(uri)
+    }
     // Card 1: Basic Information
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -573,6 +668,110 @@ fun ViewProfileContent(
             // TODO: After CV upload feature is implemented, check for keySkills in user data
         }
     }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // CV Upload Section - thêm section này
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "CV Upload",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Show current CV if available
+            uiState.cvFileName?.let { fileName ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.UploadFile,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = fileName,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            // Upload progress
+            if (uiState.isUploadingCV) {
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            progress = uiState.cvUploadProgress,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Uploading... ${(uiState.cvUploadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            // Error message
+            uiState.cvUploadError?.let { error ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    IconButton(
+                        onClick = { viewModel.clearCVUploadError() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear error",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            // Upload button
+            Button(
+                onClick = { filePicker() },
+                enabled = !uiState.isUploadingCV,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.UploadFile,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = if (uiState.cvFileName != null) "Update CV" else "Upload New CV"
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
 }
 
 @Composable
