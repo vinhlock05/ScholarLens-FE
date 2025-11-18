@@ -16,7 +16,6 @@ data class User(
     val fieldOfStudy: String? = null,
     val birthDate: String? = null,
     val university: String? = null,
-    val cvUrl: String? = null,
     val cvFileName: String? = null,
     val cvUploadedAt: Any? = null,
     val skills: String? = null

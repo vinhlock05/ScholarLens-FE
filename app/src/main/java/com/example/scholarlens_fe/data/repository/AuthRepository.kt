@@ -21,6 +21,14 @@ import com.example.scholarlens_fe.data.api.*
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.example.scholarlens_fe.R
+import android.util.Base64
+import android.provider.OpenableColumns
+import android.util.Log
+import java.util.UUID
+import kotlin.toString
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Repository for Firebase Authentication operations
@@ -37,6 +45,7 @@ class AuthRepository @Inject constructor(
     private val clovaOCRService: ClovaOCRService,
     @ApplicationContext private val context: Context
 ) {
+    private val _currentUser = MutableStateFlow<User?>(null)
     /**
      * Get current logged in user
      */
@@ -92,7 +101,7 @@ class AuthRepository @Inject constructor(
                     email = user.email ?: "",
                     name = user.displayName ?: ""
                 )
-                
+
                 // 5. Fetch profile from backend to check if profile is complete
                 val profileResult = getProfile(user.uid)
                 if (profileResult.isSuccess) {
@@ -199,7 +208,7 @@ class AuthRepository @Inject constructor(
                     email = user.email,
                     name = user.displayName
                 )
-                
+
                 // 4. Fetch profile from backend to check if profile is complete
                 val profileResult = getProfile(user.uid)
                 if (profileResult.isSuccess) {
@@ -374,7 +383,13 @@ class AuthRepository @Inject constructor(
                 birth_date = fields["birth_date"] as? String,
                 university = fields["university"] as? String
             )
-            
+            // Log the request JSON
+            val gson = com.google.gson.Gson()
+            val jsonRequest = gson.toJson(request)
+            android.util.Log.d("AuthRepository", "Sending JSON request: $jsonRequest")
+            android.util.Log.d("AuthRepository", "UID: $uid")
+
+
             val updateResponse = authApiService.updateProfile(uid, request)
             if (updateResponse.isSuccessful) {
                 // After successful update, fetch the updated profile
@@ -386,9 +401,12 @@ class AuthRepository @Inject constructor(
                     Result.success(updateResponse.body() ?: emptyMap())
                 }
             } else {
+                android.util.Log.e("AuthRepository", "Profile update failed: ${updateResponse.message()}")
+                android.util.Log.e("AuthRepository", "Error body: ${updateResponse.errorBody()?.string()}")
                 Result.failure(Exception("Failed to update profile: ${updateResponse.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "Exception in updateProfile", e)
             Result.failure(e)
         }
     }
@@ -409,154 +427,134 @@ class AuthRepository @Inject constructor(
             else -> exception.message ?: "An error occurred"
         }
     }
-    suspend fun uploadCV(uri: Uri, onProgress: (Float) -> Unit = {}): com.example.scholarlens_fe.data.repository.CVUploadResult {
-        return withContext(Dispatchers.IO) {
-            val user = firebaseAuth.currentUser
-                ?: throw Exception("User not authenticated")
-
-            val fileName = "cv_${user.uid}_${System.currentTimeMillis()}.pdf"
-            val storageRef = storage.reference.child("cvs/$fileName")
-
-            val uploadTask = storageRef.putFile(uri)
-
-            uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress = taskSnapshot.bytesTransferred.toFloat() / taskSnapshot.totalByteCount.toFloat()
-                onProgress(progress)
-            }
-
-            val result = uploadTask.await()
-            val downloadUrl = result.storage.downloadUrl.await().toString()
-
-            // Update user document with CV info
-            val userDocRef = firestore.collection("users").document(user.uid)
-            userDocRef.update(
-                mapOf(
-                    "cvUrl" to downloadUrl,
-                    "cvFileName" to fileName,
-                    "cvUploadedAt" to FieldValue.serverTimestamp()
-                )
-            ).await()
-
-            CVUploadResult(downloadUrl, fileName)
-        }
-    }
-
-    // Add these methods to AuthRepository.kt
-
-    suspend fun uploadAndProcessCV(uri: Uri, onProgress: (Float) -> Unit = {}): CVUploadResult {
-        return withContext(Dispatchers.IO) {
-            val user = firebaseAuth.currentUser
-                ?: throw Exception("User not authenticated")
-
-            // 1. Upload CV to Firebase Storage
-            val fileName = "cv_${user.uid}_${System.currentTimeMillis()}.pdf"
-            val storageRef = storage.reference.child("cvs/$fileName")
-
-            val uploadTask = storageRef.putFile(uri)
-
-            uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress = taskSnapshot.bytesTransferred.toFloat() / taskSnapshot.totalByteCount.toFloat() * 0.7f // 70% for upload
-                onProgress(progress)
-            }
-
-            val uploadResult = uploadTask.await()
-            val downloadUrl = uploadResult.storage.downloadUrl.await().toString()
-
-            onProgress(0.8f) // 80% - starting OCR
-
-            try {
-                // 2. Process CV with CLOVA OCR
-                val extractedData = processCVWithOCR(downloadUrl)
-
-                onProgress(0.95f) // 95% - updating profile
-
-                // 3. Update user document with CV info and extracted data
-                val updateFields = mutableMapOf<String, Any>(
-                    "cvUrl" to downloadUrl,
-                    "cvFileName" to fileName,
-                    "cvUploadedAt" to FieldValue.serverTimestamp()
-                )
-
-                // Add extracted data to update fields
-                extractedData?.let { data ->
-                    data["gpa_range_4"]?.let { updateFields["gpa_range_4"] = it }
-                    data["field_of_study"]?.let { updateFields["field_of_study"] = it }
-                    data["university"]?.let { updateFields["university"] = it }
-                    data["skills"]?.let { updateFields["skills"] = it }
-                }
-
-                val userDocRef = firestore.collection("users").document(user.uid)
-                userDocRef.update(updateFields).await()
-
-                onProgress(1.0f) // 100% complete
-
-                CVUploadResult(downloadUrl, fileName)
-            } catch (ocrException: Exception) {
-                // If OCR fails, still save the CV file but without extracted data
-                val userDocRef = firestore.collection("users").document(user.uid)
-                userDocRef.update(
-                    mapOf(
-                        "cvUrl" to downloadUrl,
-                        "cvFileName" to fileName,
-                        "cvUploadedAt" to FieldValue.serverTimestamp()
-                    )
-                ).await()
-
-                onProgress(1.0f)
-                CVUploadResult(downloadUrl, fileName)
-            }
-        }
-    }
-
-    private suspend fun processCVWithOCR(cvUrl: String): Map<String, String>? {
+    /**
+     * Process CV directly without uploading to storage
+     * Reads file content and sends to OCR service directly
+     */
+    suspend fun processLocalCV(
+        uri: Uri,
+        onProgress: (Float) -> Unit = {}
+    ): CVUploadResult {
         return try {
-            val request = ClovaOCRRequest(
-                requestId = "cv_${System.currentTimeMillis()}",
-                timestamp = System.currentTimeMillis(),
-                images = listOf(
-                    ClovaImage(
-                        format = "pdf",
-                        name = "cv",
-                        url = cvUrl
-                    )
-                )
+            onProgress(0.1f)
+
+            // Read file content
+            val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.readBytes()
+            } ?: throw Exception("Cannot read file")
+
+            onProgress(0.3f)
+
+            // Convert to base64 for OCR
+            val base64Data = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+
+            onProgress(0.5f)
+
+            // Get file name
+            val fileName = "cv.pdf"
+
+            // Call OCR service
+            val extractedData = callClovaOCR(base64Data, fileName)
+
+            onProgress(0.8f)
+
+            // Update user profile with extracted data
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                updateProfileWithCVData(currentUser.uid, extractedData, fileName)
+            }
+
+            onProgress(1.0f)
+
+            CVUploadResult(
+                fileName = fileName,
+                extractedData = extractedData
             )
 
-            // Get secret key from resources
-            val context = storage.app.applicationContext
-            val secretKey = context.getString(R.string.clova_ocr_secret_key)
-
-            val response = clovaOCRService.extractCVData(secretKey, request)
-
-            if (response.isSuccessful) {
-                response.body()?.let { ocrResponse ->
-                    parseExtractedData(ocrResponse)
-                }
-            } else {
-                null
-            }
         } catch (e: Exception) {
-            null
+            throw Exception("Failed to process CV: ${e.message}")
         }
     }
 
-    private fun parseExtractedData(response: ClovaOCRResponse): Map<String, String> {
-        val extractedData = mutableMapOf<String, String>()
+    private suspend fun callClovaOCR(base64Data: String, fileName: String): Map<String, String> {
+        val request = ClovaOCRRequest(
+            requestId = UUID.randomUUID().toString(),
+            timestamp = System.currentTimeMillis(),
+            images = listOf(
+                ClovaImage(
+                    format = "pdf",
+                    name = fileName,
+                    data = base64Data
+                )
+            )
+        )
 
-        response.images.firstOrNull()?.fields?.forEach { field ->
-            when (field.name.lowercase()) {
-                "gpa" -> extractedData["gpa"] = field.inferText
-                "major", "field_of_study" -> extractedData["fieldOfStudy"] = field.inferText
-                "university", "school" -> extractedData["university"] = field.inferText
-                "skills" -> extractedData["skills"] = field.inferText
+        val response = clovaOCRService.extractCVData(
+            secretKey = context.getString(R.string.clova_ocr_secret_key),
+            request = request
+        )
+
+        if (response.isSuccessful) {
+            return parseClovaResponse(response.body())
+        } else {
+            throw Exception("OCR failed: ${response.message()}")
+        }
+    }
+
+    private fun parseClovaResponse(response: ClovaOCRResponse?): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+
+        response?.images?.forEach { image ->
+            image.fields.forEach { field ->
+                when (field.name.lowercase()) {
+                    "name" -> result["display_name"] = field.inferText
+                    "university", "school" -> result["university"] = field.inferText
+                    "major", "field_of_study" -> result["field_of_study"] = field.inferText
+                    "gpa" -> result["gpa_range_4"] = field.inferText
+                    "skills" -> result["skills"] = field.inferText
+                    // Add more field mappings as needed
+                }
             }
         }
 
-        return extractedData
+        return result
+    }
+
+    suspend fun updateProfileWithCVData(
+        uid: String,
+        extractedData: Map<String, String>,
+        fileName: String
+    ): Result<Unit> {
+
+        return try {
+            val fields = extractedData.toMutableMap().apply {
+                put("cvFileName", fileName)
+                //put("cvUploadedAt", System.currentTimeMillis())
+            }
+            val result = updateProfile(uid, fields)
+
+            if (result.isSuccess) {
+                result.getOrNull()?.let { updatedData ->
+                    _currentUser.value = _currentUser.value?.copy(
+                        cvFileName = fileName,
+                        cvUploadedAt = System.currentTimeMillis(),
+                        fieldOfStudy = extractedData["field_of_study"],
+                        gpaRange4 = extractedData["gpa"],
+                        skills = extractedData["skills"]
+                    )
+                }
+                Result.success(Unit)
+            } else {
+                result.exceptionOrNull()?.let { Result.failure(it) } ?: Result.failure(Exception("Update failed"))
+            }
+        } catch (e: Exception) {
+            //Log.e(TAG, "Error updating profile with CV data", e)
+            Result.failure(e)
+        }
     }
 }
 
 data class CVUploadResult(
-    val downloadUrl: String,
-    val fileName: String
+    val fileName: String,
+    val extractedData: Map<String, String>?
 )

@@ -107,7 +107,7 @@ object NetworkModule {
     @Named("clova_retrofit")
     fun provideClovaRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://8qs1a8pxk0.apigw.ntruss.com")
+            .baseUrl("http://clovaocr-api-kr.ncloud.com")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

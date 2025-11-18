@@ -1,7 +1,7 @@
 package com.example.scholarlens_fe.data.api
 
 import retrofit2.http.*
-import okhttp3.RequestBody
+import retrofit2.Response
 
 data class ClovaOCRRequest(
     val version: String = "V2",
@@ -55,10 +55,10 @@ data class ClovaVertex(
 )
 
 interface ClovaOCRService {
-    @POST("/custom/v1/36234/55ca75b3a0b95c5fe75af4fbbb6e2f0b5dcb5f7e04509a60e3b7ba5efc9fa1e6/document/cv")
+    @POST("/external/v1/47847/578f0eec9e573e8211a0d8cbab98dd375403a31096af9b8b3f3deb35e2ec99ea")
     @Headers("Content-Type: application/json")
     suspend fun extractCVData(
         @Header("X-OCR-SECRET") secretKey: String,
         @Body request: ClovaOCRRequest
-    ): retrofit2.Response<ClovaOCRResponse>
+    ): Response<ClovaOCRResponse>
 }

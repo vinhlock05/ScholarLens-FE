@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.flow.update
 
 @HiltViewModel
@@ -228,7 +229,8 @@ class ProfileViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isUploadingCV = true, cvUploadError = null) }
 
-                val result = authRepository.uploadAndProcessCV(uri) { progress ->
+                // Process CV locally without storage upload
+                val result = authRepository.processLocalCV(uri) { progress ->
                     _uiState.update { it.copy(cvUploadProgress = progress) }
                 }
 
@@ -240,7 +242,7 @@ class ProfileViewModel @Inject constructor(
                     )
                 }
 
-                // Reload user data to get the updated profile with extracted CV data
+                // Reload user data to get the updated profile
                 loadUser()
 
             } catch (e: Exception) {
